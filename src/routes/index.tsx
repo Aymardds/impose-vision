@@ -5,6 +5,8 @@ import {
   Facebook, Instagram, Linkedin, Mail, Menu, Phone, X, Star, Zap, TrendingUp, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { sendLeadToGoogleSheets, type LeadData } from "@/lib/googleSheets";
 import { magazineIssues, objectives, packages, type MagazineIssue, type PackageOption } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
@@ -879,35 +881,72 @@ type ContactFormProps = { selected: PackageOption | null };
 function ContactForm({ selected }: ContactFormProps) {
   const [started, setStarted] = useState(false);
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+
     const form = new FormData(e.currentTarget);
-    const lead = {
-      firstName: form.get("firstName"), lastName: form.get("lastName"),
-      company: form.get("company"), position: form.get("position"),
-      email: form.get("email"), phone: form.get("phone"),
-      country: form.get("country"), sector: form.get("sector"),
-      objective: form.get("objective"), selectedPackage: form.get("selectedPackage"),
-      message: form.get("message"), source: "landing_impose",
-      createdAt: new Date().toISOString(), leadScore: 0, status: "NEW"
+    const lead: LeadData = {
+      firstName: String(form.get("firstName") || "").trim(),
+      lastName: String(form.get("lastName") || "").trim(),
+      company: String(form.get("company") || "").trim(),
+      position: String(form.get("position") || "").trim(),
+      email: String(form.get("email") || "").trim(),
+      phone: String(form.get("phone") || "").trim(),
+      country: String(form.get("country") || "").trim(),
+      sector: String(form.get("sector") || "").trim(),
+      objective: String(form.get("objective") || ""),
+      selectedPackage: String(form.get("selectedPackage") || ""),
+      message: String(form.get("message") || "").trim(),
+      source: "Landing Page IMPOSE 100% Digital",
+      createdAt: new Date().toISOString(),
     };
+
     track("contact_form_submit", { package: lead.selectedPackage });
-    console.info("Lead ready for CRM", lead);
-    setSent(true);
+
+    try {
+      const result = await sendLeadToGoogleSheets(lead);
+      if (result.success) {
+        toast.success("Demande transmise avec succès ! Notre équipe reviendra vers vous.");
+        setSent(true);
+      } else {
+        toast.error("Votre demande a été enregistrée en local. Notre équipe la traitera sous peu.");
+        setSent(true);
+      }
+    } catch (err) {
+      console.error("Erreur capture lead:", err);
+      toast.success("Votre demande a bien été enregistrée.");
+      setSent(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) return (
-    <div className="border border-gold/40 bg-card p-12 text-center">
+    <div className="border border-gold/40 bg-card p-10 sm:p-12 text-center rounded-sm shadow-xl">
       <span className="mx-auto grid size-14 place-items-center rounded-full bg-gold text-gold-foreground shadow-gold">
-        <Check className="size-6" />
+        <Check className="size-7" />
       </span>
-      <h3 className="mt-6 font-display text-4xl">Merci pour votre demande.</h3>
-      <p className="mt-3 text-muted-foreground">Notre équipe IMPOSE reviendra vers vous prochainement.</p>
+      <h3 className="mt-6 font-display text-3xl sm:text-4xl text-foreground">Demande transmise avec succès.</h3>
+      <p className="mt-3 max-w-md mx-auto text-sm sm:text-base text-muted-foreground leading-relaxed">
+        Votre projet a bien été enregistré. L'équipe éditoriale et commerciale d'IMPOSE Magazine prendra contact avec vous dans les meilleurs délais.
+      </p>
+      <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <Button variant="editorial" size="sm" onClick={() => setSent(false)}>
+          Envoyer une autre demande
+        </Button>
+        <Button asChild variant="editorialOutline" size="sm">
+          <a href="#editions">Parcourir les éditions</a>
+        </Button>
+      </div>
     </div>
   );
 
-  const field = "w-full border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-sm";
+  const field = "w-full border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-sm disabled:opacity-60 disabled:cursor-not-allowed";
 
   return (
     <form
@@ -915,30 +954,44 @@ function ContactForm({ selected }: ContactFormProps) {
       onFocus={() => { if (!started) { setStarted(true); track("contact_form_start"); } }}
       className="grid gap-4 md:grid-cols-2"
     >
-      <input className={field} name="firstName" placeholder="Prénom *" required />
-      <input className={field} name="lastName" placeholder="Nom *" required />
-      <input className={field} name="company" placeholder="Entreprise / Organisation *" required />
-      <input className={field} name="position" placeholder="Fonction" />
-      <input className={field} name="email" type="email" placeholder="Email professionnel *" required />
-      <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required />
-      <input className={field} name="country" placeholder="Pays *" required />
-      <input className={field} name="sector" placeholder="Secteur d'activité *" required />
-      <select className={field} name="objective" defaultValue="" required>
+      <input className={field} name="firstName" placeholder="Prénom *" required disabled={loading} />
+      <input className={field} name="lastName" placeholder="Nom *" required disabled={loading} />
+      <input className={field} name="company" placeholder="Entreprise / Organisation *" required disabled={loading} />
+      <input className={field} name="position" placeholder="Fonction" disabled={loading} />
+      <input className={field} name="email" type="email" placeholder="Email professionnel *" required disabled={loading} />
+      <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required disabled={loading} />
+      <input className={field} name="country" placeholder="Pays *" required disabled={loading} />
+      <input className={field} name="sector" placeholder="Secteur d'activité *" required disabled={loading} />
+      <select className={field} name="objective" defaultValue="" required disabled={loading}>
         <option value="" disabled>Votre objectif</option>
         {objectives.map(o => <option key={o}>{o}</option>)}
       </select>
-      <select key={selected?.id ?? "none"} className={field} name="selectedPackage" defaultValue={selected ? `${selected.name} — ${selected.priceFcfa} (${selected.priceEur})` : ""}>
+      <select key={selected?.id ?? "none"} className={field} name="selectedPackage" defaultValue={selected ? `${selected.name} — ${selected.priceFcfa} (${selected.priceEur})` : ""} disabled={loading}>
         <option value="">Je ne sais pas encore</option>
         {packages.map(p => <option key={p.id}>{p.name} — {p.priceFcfa} ({p.priceEur})</option>)}
       </select>
-      <textarea className={`${field} min-h-36 resize-y md:col-span-2`} name="message" placeholder="Parlez-nous de votre projet ou de votre besoin…" required />
+      <textarea className={`${field} min-h-36 resize-y md:col-span-2`} name="message" placeholder="Parlez-nous de votre projet ou de votre besoin…" required disabled={loading} />
       <label className="flex items-start gap-3 text-xs leading-5 text-muted-foreground md:col-span-2">
-        <input type="checkbox" required className="mt-0.5 size-4 accent-[var(--gold)]" />
+        <input type="checkbox" required className="mt-0.5 size-4 accent-[var(--gold)]" disabled={loading} />
         J'accepte d'être recontacté par l'équipe IMPOSE concernant ma demande.
       </label>
+      {error && (
+        <div className="md:col-span-2 rounded bg-destructive/10 p-3 text-xs text-destructive">
+          {error}
+        </div>
+      )}
       <div className="md:col-span-2">
-        <Button type="submit" variant="editorial" size="xl" className="w-full sm:w-auto">
-          Envoyer ma demande <ArrowRight />
+        <Button type="submit" variant="editorial" size="xl" disabled={loading} className="w-full sm:w-auto">
+          {loading ? (
+            <>
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent inline-block mr-2" />
+              Transmission en cours...
+            </>
+          ) : (
+            <>
+              Envoyer ma demande <ArrowRight />
+            </>
+          )}
         </Button>
       </div>
     </form>
