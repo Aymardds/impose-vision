@@ -11,6 +11,9 @@ import florenceCover from "@/assets/landingImage/Florence.png";
 import josephBileyCover from "@/assets/landingImage/JOsephBIley.png";
 import ndoyeCover from "@/assets/landingImage/Ndoye.png";
 import brianCover from "@/assets/landingImage/Bryan.png";
+import alexZanBiCover from "@/assets/landingImage/Alex Zan Bi.jpeg";
+import mohamedAlyDiabateCover from "@/assets/landingImage/Mohamed Aly Diabaté.jpeg";
+import darlyNguemaCover from "@/assets/landingImage/Darly Nguema.jpeg";
 
 export type MagazineIssue = {
   id: number;
@@ -35,6 +38,16 @@ export const magazineIssues: MagazineIssue[] = [
     featured: true,
   },
   {
+    id: 30,
+    number: "N°30",
+    title: "Tout devient digital : Comprendre et maîtriser le virage incontournable",
+    date: "Août 2026",
+    image: alexZanBiCover,
+    description: "Alex Zan Bi — Entrepreneur Digital & Créateur de Contenu (+300k abonnés). Fondateur Lewa Space & Cofondateur GetMedford.",
+    person: "Alex Zan Bi",
+    featured: true,
+  },
+  {
     id: 28,
     number: "N°28",
     title: "Africa's Business Heroes",
@@ -52,6 +65,16 @@ export const magazineIssues: MagazineIssue[] = [
     image: ndoyeCover,
     description: "El Hadji Ndoye — Expert en Personal Branding pour Entrepreneurs & CEOs. Le CEO qui façonne les leaders de demain. Africa's Business Heroes 2026.",
     person: "El Hadji Ndoye",
+    featured: true,
+  },
+  {
+    id: 26,
+    number: "N°26",
+    title: "Transformer la passion en entreprise : Le pari lucide des créatifs africains",
+    date: "Février 2026",
+    image: mohamedAlyDiabateCover,
+    description: "Mohamed Aly Diabaté — Filmmaker, Photojournalist & Manager Visualis Africa. 29 500 Milliards USD de richesses minières & Initiative IA Bill Gates / OpenAI.",
+    person: "Mohamed Aly Diabaté",
     featured: true,
   },
   {
@@ -102,6 +125,16 @@ export const magazineIssues: MagazineIssue[] = [
     image: brianCover,
     description: "Brian Hurfet — CEO de BHB Investments & Business Services et African Insights Academy. Ancien banquier d'affaires.",
     person: "Brian Hurfet",
+    featured: false,
+  },
+  {
+    id: 211,
+    number: "N°21",
+    title: "L'inclusion financière dans le contexte africain",
+    date: "Septembre 2025",
+    image: darlyNguemaCover,
+    description: "Darly Nguema — Analyste financière. L'accès universel et équitable aux services financiers numériques abordables.",
+    person: "Darly Nguema",
     featured: false,
   },
   {

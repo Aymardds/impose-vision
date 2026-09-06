@@ -12,20 +12,110 @@ import partner2 from "@/assets/landingImage/PartenaireImpose2.png";
 import partner3 from "@/assets/landingImage/PartenaireImpose3.png";
 import partner4 from "@/assets/landingImage/PartenaireImpose4.png";
 import partner5 from "@/assets/landingImage/PartenaireImpose5.png";
-import partner6 from "@/assets/landingImage/PartenaireImpose6.png.webp";
+import partnerMoro from "@/assets/landingImage/PartenaireImpose6.png";
+import partnerKoolboks from "@/assets/landingImage/PartenaireImpose6.png.webp";
+import partner7 from "@/assets/landingImage/PartenaireImpose7.png.webp";
+import partner8 from "@/assets/landingImage/PartenaireImpose8.png";
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "NewsMediaOrganization",
+      "@id": "https://impose-ci.com/#organization",
+      "name": "IMPOSE Magazine",
+      "alternateName": ["IMPOSE", "IMPOSE Média", "IMPOSE Vision"],
+      "url": "https://impose-ci.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://impose-ci.com/logo.png",
+        "width": 204,
+        "height": 68
+      },
+      "image": "https://impose-ci.com/og-image.jpg",
+      "slogan": "Imposez votre identité",
+      "description": "IMPOSE est le magazine panafricain 100% digital dédié aux leaders, entrepreneurs, innovateurs et bâtisseurs qui façonnent l'Afrique.",
+      "sameAs": [
+        "https://www.linkedin.com/company/94140411/",
+        "https://www.facebook.com/imposeofficiel"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "contact@impose-ci.com",
+        "contactType": "editorial",
+        "availableLanguage": ["French", "English"]
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://impose-ci.com/#website",
+      "url": "https://impose-ci.com/",
+      "name": "IMPOSE Magazine",
+      "description": "Magazine Panafricain 100% Digital — Imposez votre identité",
+      "publisher": {
+        "@id": "https://impose-ci.com/#organization"
+      },
+      "inLanguage": "fr-FR"
+    },
+    {
+      "@type": "Periodical",
+      "@id": "https://impose-ci.com/#periodical",
+      "name": "IMPOSE Magazine",
+      "issuanceType": "Continuous",
+      "publisher": {
+        "@id": "https://impose-ci.com/#organization"
+      },
+      "inLanguage": "fr-FR"
+    }
+  ]
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "IMPOSE Magazine | Leaders et transformations africaines" },
-      { name: "description", content: "IMPOSE met en lumière les entrepreneurs, dirigeants, entreprises, innovateurs et institutions qui façonnent l'Afrique. Découvrez nos éditions et nos solutions de visibilité." },
-      { property: "og:title", content: "IMPOSE Magazine | Leaders et transformations africaines" },
-      { property: "og:description", content: "Le média panafricain qui révèle celles et ceux qui façonnent l'Afrique." },
+      { title: "IMPOSE Magazine | Magazine Panafricain 100% Digital — Imposez votre identité" },
+      { name: "description", content: "IMPOSE est le magazine panafricain 100% digital dédié aux leaders, entrepreneurs et innovateurs qui transforment l'Afrique. Éditions interactives, interviews exclusives et analyses d'impact. Imposez votre identité." },
+      { name: "keywords", content: "IMPOSE Magazine, magazine panafricain, média digital afrique, entrepreneuriat africain, leaders afrique, magazine 100% digital, business afrique, innovation afrique, Côte d'Ivoire, startup afrique, Imposez votre identité" },
+      { name: "author", content: "IMPOSE Magazine" },
+      { name: "publisher", content: "IMPOSE Magazine" },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+      { name: "googlebot", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+
+      // Open Graph / Facebook / LinkedIn / WhatsApp
+      { property: "og:site_name", content: "IMPOSE Magazine" },
+      { property: "og:title", content: "IMPOSE Magazine | Média Panafricain 100% Digital — Imposez votre identité" },
+      { property: "og:description", content: "Découvrez le magazine 100% digital qui révèle les leaders, entrepreneurs et bâtisseurs qui façonnent l'Afrique moderne. Imposez votre identité." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: "https://impose-ci.com/" },
+      { property: "og:image", content: "https://impose-ci.com/og-image.jpg" },
+      { property: "og:image:secure_url", content: "https://impose-ci.com/og-image.jpg" },
+      { property: "og:image:type", content: "image/jpeg" },
+      { property: "og:image:width", content: "1376" },
+      { property: "og:image:height", content: "768" },
+      { property: "og:image:alt", content: "IMPOSE Magazine — 100% Digital — Imposez votre identité" },
+      { property: "og:locale", content: "fr_FR" },
+      { property: "og:locale:alternate", content: "en_US" },
+
+      // Twitter / X Cards
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@imposemagazine" },
+      { name: "twitter:creator", content: "@imposemagazine" },
+      { name: "twitter:title", content: "IMPOSE Magazine | Média Panafricain 100% Digital" },
+      { name: "twitter:description", content: "Le magazine 100% digital qui révèle les leaders et entrepreneurs qui façonnent l'Afrique. Imposez votre identité." },
+      { name: "twitter:image", content: "https://impose-ci.com/og-image.jpg" },
+      { name: "twitter:image:alt", content: "IMPOSE Magazine — 100% Digital — Imposez votre identité" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [
+      { rel: "canonical", href: "https://impose-ci.com/" },
+      { rel: "alternate", hrefLang: "fr", href: "https://impose-ci.com/" },
+      { rel: "alternate", hrefLang: "x-default", href: "https://impose-ci.com/" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(structuredData),
+      },
+    ],
   }),
   component: Index,
 });
@@ -42,7 +132,7 @@ function Logo({ light = false, className = "" }: { light?: boolean; className?: 
   return (
     <img
       src={logoImpose}
-      alt="IMPOSE Magazine"
+      alt="IMPOSE Magazine — 100% Digital — Imposez votre identité"
       width="204"
       height="68"
       className={`h-8 md:h-9 w-auto object-contain transition-all duration-200 ${light ? "" : "brightness-0 opacity-90 hover:opacity-100 dark:brightness-100 dark:opacity-100"
@@ -66,7 +156,12 @@ function Header() {
   return (
     <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? "border-b border-foreground/10 bg-background/95 backdrop-blur-xl shadow-sm" : "bg-transparent"}`}>
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
-        <a href="#accueil" aria-label="Accueil IMPOSE"><Logo /></a>
+        <a href="#accueil" aria-label="Accueil IMPOSE" className="flex items-center gap-2.5">
+          <Logo />
+          <span className="hidden sm:inline-block border-l border-foreground/15 pl-2.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+            100% Digital
+          </span>
+        </a>
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Navigation principale">
           {links.map(([label, href]) => (
             <a key={href} href={href} className="text-[11px] font-bold uppercase tracking-widest text-foreground/60 transition-colors hover:text-foreground">{label}</a>
@@ -162,7 +257,7 @@ function HeroCoverCarousel({ onSelect }: { onSelect?: ((issue: MagazineIssue) =>
             <div className="absolute inset-x-0 top-3 flex items-center justify-between px-3.5 z-10">
               <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${item.id === 31 ? "bg-ember text-white" : "bg-black/60 text-white"
                 }`}>
-                {item.id === 31 ? "Nouvelle parution" : "En kiosque"}
+                {item.id === 31 ? "Dernière parution" : "100% Digital"}
               </span>
               <span className="rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[9px] font-bold text-white">
                 {item.number}
@@ -232,7 +327,7 @@ const stats = [
   { icon: Star, value: "+31", label: "Éditions publiées" },
   { icon: Globe, value: "+15", label: "Pays représentés" },
   { icon: TrendingUp, value: "+500", label: "Leaders mis en avant" },
-  { icon: Zap, value: "100%", label: "Contenu premium" },
+  { icon: Zap, value: "100%", label: "Média 100% Digital" },
 ];
 
 function Hero({ onSelectCover }: { onSelectCover?: ((issue: MagazineIssue) => void) | undefined }) {
@@ -247,14 +342,19 @@ function Hero({ onSelectCover }: { onSelectCover?: ((issue: MagazineIssue) => vo
         <div className="order-2 lg:order-1">
           <div className="reveal-one flex items-center gap-3">
             <span className="h-px w-9 bg-ember" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-ember">Le magazine des leaders africains</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-ember">
+              Magazine 100% Digital · Imposez votre identité
+            </span>
           </div>
           <h1 className="reveal-two mt-6 max-w-4xl font-display text-5xl font-medium leading-[.94] sm:text-6xl lg:text-[5.5rem]">
             Les histoires qui façonnent{" "}
             <em className="italic text-ember">l'Afrique.</em>
           </h1>
-          <p className="reveal-three mt-7 max-w-xl text-base leading-7 text-muted-foreground lg:text-lg">
-            IMPOSE met en lumière les entrepreneurs, dirigeants, innovateurs et institutions qui transforment l'Afrique et construisent les succès de demain.
+          <p className="reveal-three mt-6 font-display text-2xl text-foreground font-semibold italic">
+            « Imposez votre identité »
+          </p>
+          <p className="reveal-three mt-3 max-w-xl text-base leading-7 text-muted-foreground lg:text-lg">
+            IMPOSE est le magazine 100% digital qui met en lumière les entrepreneurs, dirigeants, innovateurs et institutions qui transforment l'Afrique et construisent les succès de demain.
           </p>
           <div className="reveal-three mt-9 flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="editorial" size="xl" onClick={() => track("hero_cta_click", { target: "packages" })}>
@@ -315,7 +415,12 @@ function CoverMarqueeTicker({ onSelect }: { onSelect: (issue: MagazineIssue) => 
               className="group relative w-28 sm:w-32 shrink-0 cursor-pointer overflow-hidden rounded-sm shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               style={{ aspectRatio: "711 / 1084" }}
             >
-              <img src={item.image} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={item.image}
+                alt={`Couverture IMPOSE ${item.number} — ${item.person} : ${item.title}`}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-2">
                 <span className="text-[9px] font-extrabold text-gold">{item.number}</span>
                 <span className="text-[9px] font-medium text-white line-clamp-1">{item.person}</span>
@@ -337,7 +442,7 @@ const partners = [
   {
     name: "Djoulatchê",
     logo: partner2,
-    className: "h-10 sm:h-12 w-auto max-w-[140px]",
+    className: "h-10 sm:h-12 w-auto max-w-[140px] rounded-sm",
   },
   {
     name: "AKILI",
@@ -355,9 +460,24 @@ const partners = [
     className: "h-9 sm:h-11 w-auto max-w-[140px]",
   },
   {
+    name: "moro",
+    logo: partnerMoro,
+    className: "h-9 sm:h-11 w-auto max-w-[140px]",
+  },
+  {
     name: "KOOLBOKS",
-    logo: partner6,
+    logo: partnerKoolboks,
     className: "h-7 sm:h-9 w-auto max-w-[140px]",
+  },
+  {
+    name: "Venture Konect",
+    logo: partner7,
+    className: "h-9 sm:h-11 w-auto max-w-[160px]",
+  },
+  {
+    name: "INEXIUMUS",
+    logo: partner8,
+    className: "h-8 sm:h-10 w-auto max-w-[160px]",
   },
 ];
 
@@ -376,7 +496,7 @@ function PartnersSection() {
             <div key={`${p.name}-${idx}`} className="shrink-0 flex items-center justify-center">
               <img
                 src={p.logo}
-                alt={p.name}
+                alt={`Partenaire officiel IMPOSE : ${p.name}`}
                 className={`${p.className} object-contain opacity-75 hover:opacity-100 transition-opacity duration-300`}
                 loading="lazy"
               />
@@ -402,14 +522,14 @@ function AboutSection() {
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-24">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gold">IMPOSE en quelques mots</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gold">Le Magazine 100% Digital</p>
             <h2 className="mt-5 font-display text-4xl leading-tight sm:text-5xl">
               Plus qu'un magazine.<br />
-              <span className="text-gold">Une vitrine</span> pour ceux qui construisent l'avenir.
+              <span className="text-gold">« Imposez votre identité »</span> à travers toute l'Afrique.
             </h2>
           </div>
           <p className="self-end text-base leading-8 text-primary-foreground/65">
-            IMPOSE valorise les parcours, les entreprises, les innovations et les initiatives à fort impact. Nous créons des récits exigeants qui renforcent la confiance, la notoriété et l'influence de celles et ceux qui font avancer le continent.
+            IMPOSE est un magazine panafricain 100% digital conçu pour une diffusion instantanée et sans frontières. Nous valorisons les parcours, les entreprises, les innovations et les initiatives à fort impact à travers des récits exigeants qui forgent la confiance, la notoriété et l'influence de celles et ceux qui font avancer le continent.
           </p>
         </div>
         <div className="mt-16 grid border-t border-primary-foreground/15 sm:grid-cols-2 lg:grid-cols-4">
@@ -866,8 +986,11 @@ function Footer() {
         <div className="grid gap-12 border-b border-primary-foreground/15 pb-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <Logo light />
-            <p className="mt-5 max-w-sm text-sm leading-6 text-primary-foreground/55">
-              IMPOSE — Le magazine des leaders et des transformations africaines.
+            <p className="mt-4 text-xs font-bold uppercase tracking-wider text-gold">
+              « Imposez votre identité »
+            </p>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-primary-foreground/55">
+              IMPOSE — Le magazine 100% digital des leaders et des transformations africaines.
             </p>
           </div>
           <div>
@@ -953,7 +1076,11 @@ function Index() {
               <X />
             </Button>
             <div className="overflow-hidden rounded-sm shadow-2xl" style={{ aspectRatio: "711 / 1084" }}>
-              <img src={modalCover.image} alt={modalCover.title} className="h-full w-full object-cover" />
+              <img
+                src={modalCover.image}
+                alt={`Couverture IMPOSE ${modalCover.number} — ${modalCover.person} : ${modalCover.title}`}
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="mt-4 text-center text-white">
               <span className="rounded-sm bg-ember px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
