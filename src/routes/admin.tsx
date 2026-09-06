@@ -24,7 +24,8 @@ import {
   Zap,
   ShieldCheck,
   AlertCircle,
-  Database
+  Database,
+  Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ import {
   isSupabaseConfigured,
   type DbLead
 } from "@/lib/supabase";
+import { SCHEMA_SQL } from "@/lib/schemaSql";
 import { type MagazineIssue, type PartnerItem } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 
@@ -107,6 +109,25 @@ function AdminPage() {
   const [testingSupabase, setTestingSupabase] = useState(false);
   const [supabaseTestResult, setSupabaseTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+  const [showSqlPreview, setShowSqlPreview] = useState(false);
+
+  const projectRef = SUPABASE_URL.replace(/^https?:\/\//, "").split(".")[0] || "";
+  const sqlEditorUrl = projectRef
+    ? `https://supabase.com/dashboard/project/${projectRef}/sql/new`
+    : "https://supabase.com/dashboard";
+
+  const handleCopySql = async () => {
+    try {
+      await navigator.clipboard.writeText(SCHEMA_SQL);
+      setCopiedSql(true);
+      toast.success("Script SQL copié dans le presse-papier !");
+      setTimeout(() => setCopiedSql(false), 3000);
+    } catch {
+      toast.error("Veuillez sélectionner et copier le code SQL ci-dessous manuellement.");
+      setShowSqlPreview(true);
+    }
+  };
 
   // Authentication check
   const handleLogin = (e: FormEvent) => {
@@ -727,7 +748,7 @@ function AdminPage() {
             <div>
               <h2 className="font-display text-2xl font-medium">Connexion & Paramétrage Supabase</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Liez votre projet Supabase pour synchroniser en temps réel la base de données et le stockage d'images.
+                Gérez la synchronisation en temps réel de votre base de données et du stockage d'images IMPOSE Magazine.
               </p>
             </div>
 
@@ -738,15 +759,25 @@ function AdminPage() {
                   <div className="flex items-center gap-2">
                     <span className={`size-3 rounded-full ${isSupabaseActive ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
                     <h3 className="font-semibold text-base">
-                      {isSupabaseActive ? "Projet Supabase Opérationnel" : "Projet Supabase Non Connecté"}
+                      {isSupabaseActive ? "Projet Supabase Opérationnel" : "Configuration Supabase Reconnue"}
                     </h3>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{statusMessage}</p>
-                  {SUPABASE_URL && <p className="mt-1 font-mono text-[11px] text-gold">{SUPABASE_URL}</p>}
+                  {SUPABASE_URL && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-muted font-mono text-[11px] text-gold border border-gold/20">
+                        {SUPABASE_URL}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        (Clé Anon & Bucket Stockage Configurés)
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <Button variant="editorialOutline" size="sm" onClick={handleTestSupabase} disabled={testingSupabase}>
+                    <RefreshCw className={`size-3.5 mr-1.5 ${testingSupabase ? "animate-spin" : ""}`} />
                     {testingSupabase ? "Test en cours..." : "Tester la connexion"}
                   </Button>
                 </div>
@@ -755,39 +786,86 @@ function AdminPage() {
               {supabaseTestResult && (
                 <div className={`mt-4 rounded p-3 text-xs flex items-center gap-2 ${supabaseTestResult.ok ? "bg-emerald-500/20 text-emerald-300" : "bg-destructive/20 text-destructive-foreground"}`}>
                   {supabaseTestResult.ok ? <Check className="size-4 shrink-0" /> : <AlertCircle className="size-4 shrink-0" />}
-                  {supabaseTestResult.message}
+                  <span>{supabaseTestResult.message}</span>
                 </div>
               )}
             </div>
 
-            {/* Seed Card */}
-            <div className="border border-gold/30 bg-card p-6 rounded-sm shadow-md">
-              <h3 className="font-display text-lg font-medium flex items-center gap-2 text-foreground">
-                <Sparkles className="size-4 text-gold" /> Initialisation Rapide (Seed 1-Clic)
-              </h3>
-              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                Cliquez sur ce bouton pour injecter automatiquement l'intégralité des <strong>16 couvertures officielles</strong>, <strong>9 partenaires</strong> et <strong>4 métriques</strong> existantes directement dans votre base Supabase.
+            {/* Step 1: SQL Schema Execution */}
+            <div className="border border-border bg-card p-6 rounded-sm space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">1</span>
+                <h3 className="font-display text-lg font-medium text-foreground">
+                  Créer les Tables & Politiques (Schéma SQL)
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Pour activer la sauvegarde dynamique des couvertures, des partenaires et des leads, exécutez le script SQL ci-dessous dans votre tableau de bord Supabase :
               </p>
-              <div className="mt-5">
-                <Button variant="editorial" size="lg" onClick={handleSeed} disabled={seeding}>
+
+              <div className="flex flex-wrap gap-3 pt-1">
+                <Button variant="editorial" size="sm" onClick={handleCopySql} className="flex items-center gap-2">
+                  {copiedSql ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+                  {copiedSql ? "Script SQL Copié !" : "Copier le Script SQL (schema.sql)"}
+                </Button>
+
+                <a
+                  href={sqlEditorUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-sm border border-gold/40 px-4 py-2 text-xs font-medium text-gold transition-colors hover:bg-gold/10"
+                >
+                  <ExternalLink className="size-3.5" />
+                  Ouvrir le SQL Editor de Supabase
+                </a>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSqlPreview(!showSqlPreview)}
+                  className="text-xs text-muted-foreground"
+                >
+                  {showSqlPreview ? "Masquer le code SQL" : "Aperçu du script SQL"}
+                </Button>
+              </div>
+
+              {showSqlPreview && (
+                <div className="mt-3 rounded border border-border bg-black/70 p-4 font-mono text-[11px] text-muted-foreground max-h-72 overflow-y-auto">
+                  <pre className="whitespace-pre-wrap">{SCHEMA_SQL}</pre>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Seed Card */}
+            <div className="border border-gold/40 bg-card p-6 rounded-sm shadow-md space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">2</span>
+                <h3 className="font-display text-lg font-medium flex items-center gap-2 text-foreground">
+                  <Sparkles className="size-4 text-gold" /> Initialisation Rapide (Seed 1-Clic)
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Dès que vous avez cliqué sur <strong>Run</strong> dans l'éditeur SQL de Supabase, cliquez sur ce bouton pour peupler automatiquement votre base avec les <strong>16 couvertures officielles</strong>, <strong>9 partenaires</strong> et <strong>4 métriques</strong> existantes.
+              </p>
+              <div>
+                <Button variant="editorial" size="lg" onClick={handleSeed} disabled={seeding} className="gap-2">
+                  <Sparkles className={`size-4 ${seeding ? "animate-spin" : ""}`} />
                   {seeding ? "Injection en cours..." : "Injecter toutes les données initiales dans Supabase"}
                 </Button>
               </div>
             </div>
 
-            {/* Guide Step by Step */}
-            <div className="border border-foreground/10 bg-card p-6 rounded-sm space-y-4 text-xs leading-relaxed">
-              <h3 className="font-display text-base font-medium">Guide d'installation Supabase (3 minutes)</h3>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                <li>Créez un projet gratuit sur <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-gold underline">supabase.com</a>.</li>
-                <li>Dans le menu gauche de Supabase, ouvrez <strong>SQL Editor</strong>, collez le contenu du fichier <code className="text-gold font-mono">supabase/schema.sql</code> et cliquez sur <strong>Run</strong>.</li>
-                <li>Rendez-vous dans <strong>Project Settings &gt; API</strong> et copiez l'URL du projet ainsi que la clé <code className="text-gold font-mono">anon public</code>.</li>
-                <li>Renseignez ces variables dans votre fichier <code className="text-gold font-mono">.env</code> :
-                  <pre className="mt-2 p-3 bg-black/60 rounded font-mono text-[11px] text-white">
-VITE_SUPABASE_URL=https://votre-projet.supabase.co&#10;VITE_SUPABASE_ANON_KEY=votre_cle_anon_publique
-                  </pre>
-                </li>
-              </ol>
+            {/* Step 3: Overview & Guarantees */}
+            <div className="border border-foreground/10 bg-card/60 p-6 rounded-sm space-y-3 text-xs leading-relaxed">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-gold/20 text-[11px] font-bold text-gold">3</span>
+                <h3 className="font-display text-base font-medium">Architecture Résiliente & Zéro Rupture</h3>
+              </div>
+              <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                <li><strong>Fallback automatique :</strong> Si la connexion Supabase est coupée ou en attente, le site vitrine charge instantanément les données statiques locales sans aucune interruption de service.</li>
+                <li><strong>Stockage d'images Cloud :</strong> Le bucket Supabase Storage <code className="text-gold font-mono">impose-media</code> est activé avec URL publiques directes.</li>
+                <li><strong>Sécurité RLS :</strong> Lecture publique sécurisée, protection par code PIN sur cet espace admin.</li>
+              </ul>
             </div>
           </div>
         )}

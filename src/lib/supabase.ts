@@ -99,21 +99,33 @@ export async function testSupabaseConnection(): Promise<{
 
   try {
     const [coversRes, partnersRes, metricsRes] = await Promise.all([
-      client.from("covers").select("id", { count: "exact", head: true }),
-      client.from("partners").select("id", { count: "exact", head: true }),
-      client.from("metrics").select("id", { count: "exact", head: true }),
+      client.from("covers").select("id", { count: "exact" }).limit(1),
+      client.from("partners").select("id", { count: "exact" }).limit(1),
+      client.from("metrics").select("id", { count: "exact" }).limit(1),
     ]);
 
     if (coversRes.error) {
       return {
         ok: false,
-        message: `Erreur table covers : ${coversRes.error.message}. Vérifiez que le schéma SQL a bien été exécuté.`,
+        message: `La table 'covers' n'est pas encore créée (${coversRes.error.message}). Veuillez exécuter le script supabase/schema.sql dans le SQL Editor de Supabase.`,
+      };
+    }
+    if (partnersRes.error) {
+      return {
+        ok: false,
+        message: `La table 'partners' n'est pas encore créée (${partnersRes.error.message}). Veuillez exécuter le script supabase/schema.sql.`,
+      };
+    }
+    if (metricsRes.error) {
+      return {
+        ok: false,
+        message: `La table 'metrics' n'est pas encore créée (${metricsRes.error.message}). Veuillez exécuter le script supabase/schema.sql.`,
       };
     }
 
     return {
       ok: true,
-      message: "Connexion Supabase réussie et tables opérationnelles !",
+      message: "Connexion Supabase réussie et toutes les tables sont opérationnelles !",
       details: {
         coversCount: coversRes.count ?? 0,
         partnersCount: partnersRes.count ?? 0,
