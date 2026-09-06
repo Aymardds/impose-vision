@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendLeadToGoogleSheets, type LeadData } from "@/lib/googleSheets";
+import { getSupabase } from "@/lib/supabase";
 import { useDynamicData } from "@/hooks/useDynamicData";
 import { magazineIssues, objectives, packages, type MagazineIssue, type PackageOption, type PartnerItem, type MetricItem } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
@@ -910,33 +911,74 @@ function ContactForm({ selected }: ContactFormProps) {
     setError(null);
 
     const form = new FormData(e.currentTarget);
+    const firstName = String(form.get("firstName") || "").trim();
+    const lastName = String(form.get("lastName") || "").trim();
+    const company = String(form.get("company") || "").trim();
+    const position = String(form.get("position") || "").trim();
+    const email = String(form.get("email") || "").trim();
+    const phone = String(form.get("phone") || "").trim();
+    const country = String(form.get("country") || "").trim();
+    const sector = String(form.get("sector") || "").trim();
+    const objective = String(form.get("objective") || "").trim();
+    const selectedPackage = String(form.get("selectedPackage") || "").trim();
+    const message = String(form.get("message") || "").trim();
+    const createdAt = new Date().toISOString();
+
     const lead: LeadData = {
-      firstName: String(form.get("firstName") || "").trim(),
-      lastName: String(form.get("lastName") || "").trim(),
-      company: String(form.get("company") || "").trim(),
-      position: String(form.get("position") || "").trim(),
-      email: String(form.get("email") || "").trim(),
-      phone: String(form.get("phone") || "").trim(),
-      country: String(form.get("country") || "").trim(),
-      sector: String(form.get("sector") || "").trim(),
-      objective: String(form.get("objective") || ""),
-      selectedPackage: String(form.get("selectedPackage") || ""),
-      message: String(form.get("message") || "").trim(),
+      firstName,
+      lastName,
+      company,
+      position,
+      email,
+      phone,
+      country,
+      sector,
+      objective,
+      selectedPackage,
+      message,
       source: "Landing Page IMPOSE 100% Digital",
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
 
     track("contact_form_submit", { package: lead.selectedPackage });
 
     try {
+      // 1. Insertion directe dans Supabase (table public.leads)
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          const { error: supabaseError } = await supabase.from("leads").insert({
+            first_name: firstName,
+            last_name: lastName,
+            company,
+            position,
+            email,
+            phone,
+            country,
+            sector,
+            objective,
+            selected_package: selectedPackage,
+            message,
+            source: "Landing Page IMPOSE 100% Digital",
+            status: "NEW",
+            created_at: createdAt,
+          });
+          if (supabaseError) {
+            console.warn("Supabase lead insertion notice:", supabaseError.message);
+          }
+        } catch (dbErr) {
+          console.warn("Supabase lead connection notice:", dbErr);
+        }
+      }
+
+      // 2. Transmission vers Google Sheets et sauvegarde locale normalisée
       const result = await sendLeadToGoogleSheets(lead);
       if (result.success) {
         toast.success("Demande transmise avec succès ! Notre équipe reviendra vers vous.");
-        setSent(true);
       } else {
-        toast.error("Votre demande a été enregistrée en local. Notre équipe la traitera sous peu.");
-        setSent(true);
+        toast.success("Votre demande a bien été enregistrée.");
       }
+      setSent(true);
     } catch (err) {
       console.error("Erreur capture lead:", err);
       toast.success("Votre demande a bien été enregistrée.");

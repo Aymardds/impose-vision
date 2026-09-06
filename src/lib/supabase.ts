@@ -60,21 +60,57 @@ export interface DbMetric {
 }
 
 export interface DbLead {
-  id?: string;
+  id?: string | undefined;
   first_name: string;
   last_name: string;
   company: string;
-  position?: string;
+  position?: string | undefined;
   email: string;
   phone: string;
   country: string;
   sector: string;
-  objective?: string;
-  selected_package?: string;
-  message?: string;
-  source?: string;
-  status?: string;
-  created_at?: string;
+  objective?: string | undefined;
+  selected_package?: string | undefined;
+  message?: string | undefined;
+  source?: string | undefined;
+  status?: string | undefined;
+  created_at?: string | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  selectedPackage?: string | undefined;
+  createdAt?: string | undefined;
+  savedLocallyAt?: string | undefined;
+}
+
+export function normalizeDbLead(raw: Record<string, unknown>): DbLead {
+  const first_name = String(raw["first_name"] ?? raw["firstName"] ?? "").trim();
+  const last_name = String(raw["last_name"] ?? raw["lastName"] ?? "").trim();
+  const selected_package = String(raw["selected_package"] ?? raw["selectedPackage"] ?? "").trim();
+  const created_at = String(
+    raw["created_at"] ?? raw["createdAt"] ?? raw["savedLocallyAt"] ?? new Date().toISOString()
+  );
+
+  return {
+    id: raw["id"] ? String(raw["id"]) : `lead-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    first_name,
+    last_name,
+    company: String(raw["company"] ?? "").trim(),
+    position: String(raw["position"] ?? "").trim(),
+    email: String(raw["email"] ?? "").trim(),
+    phone: String(raw["phone"] ?? "").trim(),
+    country: String(raw["country"] ?? "").trim(),
+    sector: String(raw["sector"] ?? "").trim(),
+    objective: String(raw["objective"] ?? "").trim(),
+    selected_package,
+    message: String(raw["message"] ?? "").trim(),
+    source: String(raw["source"] ?? "Landing Page IMPOSE 100% Digital"),
+    status: String(raw["status"] ?? "NEW"),
+    created_at,
+    firstName: first_name,
+    lastName: last_name,
+    selectedPackage: selected_package,
+    createdAt: created_at,
+  };
 }
 
 /**

@@ -24,10 +24,17 @@ export const GOOGLE_SHEETS_WEBHOOK_URL =
 export function saveLeadLocally(lead: LeadData) {
   try {
     const existing = JSON.parse(localStorage.getItem("impose_leads_backup") || "[]");
-    existing.unshift({
+    const now = new Date().toISOString();
+    const normalized = {
       ...lead,
-      savedLocallyAt: new Date().toISOString(),
-    });
+      id: `lead-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      first_name: lead.firstName,
+      last_name: lead.lastName,
+      selected_package: lead.selectedPackage,
+      created_at: lead.createdAt || now,
+      savedLocallyAt: now,
+    };
+    existing.unshift(normalized);
     localStorage.setItem("impose_leads_backup", JSON.stringify(existing.slice(0, 100)));
   } catch (err) {
     console.warn("Could not save lead to localStorage", err);

@@ -10,6 +10,7 @@ import {
 import {
   getSupabase,
   isSupabaseConfigured,
+  normalizeDbLead,
   type DbCover,
   type DbPartner,
   type DbMetric,
@@ -53,9 +54,10 @@ export function useDynamicData() {
   const [metrics, setMetrics] = useState<MetricItem[]>(() =>
     loadLocal(STORAGE_KEYS.METRICS, initialMetrics)
   );
-  const [leads, setLeads] = useState<DbLead[]>(() =>
-    loadLocal(STORAGE_KEYS.LEADS, [])
-  );
+  const [leads, setLeads] = useState<DbLead[]>(() => {
+    const raw = loadLocal<Record<string, unknown>[]>(STORAGE_KEYS.LEADS, []);
+    return raw.map(normalizeDbLead);
+  });
   const [loading, setLoading] = useState(false);
   const [isSupabaseActive, setIsSupabaseActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -131,8 +133,9 @@ export function useDynamicData() {
 
       // Leads
       if (leadsRes.data && leadsRes.data.length > 0) {
-        setLeads(leadsRes.data);
-        saveLocal(STORAGE_KEYS.LEADS, leadsRes.data);
+        const normalizedLeads = (leadsRes.data as Record<string, unknown>[]).map(normalizeDbLead);
+        setLeads(normalizedLeads);
+        saveLocal(STORAGE_KEYS.LEADS, normalizedLeads);
       }
 
       setIsSupabaseActive(true);
@@ -330,6 +333,55 @@ export function useDynamicData() {
     }
   };
 
+  // Record new lead
+  const recordLead = async (leadData: Record<string, unknown>) => {
+    const normalized = normalizeDbLead(leadData);
+    const current = loadLocal<Record<string, unknown>[]>(STORAGE_KEYS.LEADS, []).map(normalizeDbLead);
+    const updated = [normalized, ...current.filter((l) => l.id !== normalized.id)];
+    setLeads(updated);
+    saveLocal(STORAGE_KEYS.LEADS, updated);
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from("leads").insert({
+          first_name: normalized.first_name,
+          last_name: normalized.last_name,
+          company: normalized.company,
+          position: normalized.position || "",
+          email: normalized.email,
+          phone: normalized.phone,
+          country: normalized.country,
+          sector: normalized.sector,
+          objective: normalized.objective || "",
+          selected_package: normalized.selected_package || "",
+          message: normalized.message || "",
+          source: normalized.source || "Landing Page IMPOSE 100% Digital",
+          status: normalized.status || "NEW",
+          created_at: normalized.created_at,
+        });
+      } catch (err) {
+        console.warn("Could not insert lead to Supabase:", err);
+      }
+    }
+  };
+
+  // Delete lead
+  const deleteLead = async (id: string) => {
+    const updated = leads.filter((l) => l.id !== id);
+    setLeads(updated);
+    saveLocal(STORAGE_KEYS.LEADS, updated);
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from("leads").delete().eq("id", id);
+      } catch (err) {
+        console.warn("Could not delete lead from Supabase:", err);
+      }
+    }
+  };
+
   return {
     covers,
     partners,
@@ -347,6 +399,8 @@ export function useDynamicData() {
     updatePartner,
     deletePartner,
     updateMetric,
+    recordLead,
+    deleteLead,
     seedToSupabase,
   };
 }

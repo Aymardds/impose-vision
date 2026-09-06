@@ -78,6 +78,7 @@ function AdminPage() {
     updatePartner,
     deletePartner,
     updateMetric,
+    deleteLead,
     seedToSupabase,
   } = useDynamicData();
 
