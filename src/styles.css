@@ -175,4 +175,18 @@
 .reveal-two { animation: reveal-up .7s .12s ease-out both; }
 .reveal-three { animation: reveal-up .7s .24s ease-out both; }
 .cover-float { animation: cover-float 5s ease-in-out infinite alternate; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal-one,.reveal-two,.reveal-three,.cover-float { animation: none; } }
+
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 45s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .reveal-one,.reveal-two,.reveal-three,.cover-float,.animate-marquee { animation: none; } }
