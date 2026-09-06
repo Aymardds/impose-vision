@@ -7,7 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendLeadToGoogleSheets, type LeadData } from "@/lib/googleSheets";
-import { magazineIssues, objectives, packages, type MagazineIssue, type PackageOption } from "@/data/impose";
+import { useDynamicData } from "@/hooks/useDynamicData";
+import { magazineIssues, objectives, packages, type MagazineIssue, type PackageOption, type PartnerItem, type MetricItem } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
 import partner2 from "@/assets/landingImage/PartenaireImpose2.png";
@@ -194,8 +195,10 @@ function Header() {
   );
 }
 
-function HeroCoverCarousel({ onSelect }: { onSelect?: ((issue: MagazineIssue) => void) | undefined }) {
-  const featured = magazineIssues.slice(0, 6);
+function HeroCoverCarousel({ onSelect, items }: { onSelect?: ((issue: MagazineIssue) => void) | undefined; items?: MagazineIssue[] | undefined }) {
+  const currentIssues = (items && items.length > 0) ? items : magazineIssues;
+  const featuredList = currentIssues.filter(c => c.featured);
+  const featured = featuredList.length > 0 ? featuredList : currentIssues.slice(0, 6);
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -332,7 +335,21 @@ const stats = [
   { icon: Zap, value: "100%", label: "Média 100% Digital" },
 ];
 
-function Hero({ onSelectCover }: { onSelectCover?: ((issue: MagazineIssue) => void) | undefined }) {
+function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((issue: MagazineIssue) => void) | undefined; coverItems?: MagazineIssue[] | undefined; metricItems?: MetricItem[] | undefined }) {
+  const iconMap: Record<string, typeof Star> = {
+    Star,
+    Globe,
+    TrendingUp,
+    Zap,
+  };
+  const currentStats = (metricItems && metricItems.length > 0)
+    ? metricItems.map(m => ({
+        icon: iconMap[m.iconName] || Star,
+        value: m.value,
+        label: m.label,
+      }))
+    : stats;
+
   return (
     <section id="accueil" className="hero-sunrise relative overflow-hidden">
       {/* Background decorative elements */}
@@ -369,7 +386,7 @@ function Hero({ onSelectCover }: { onSelectCover?: ((issue: MagazineIssue) => vo
 
           {/* Stats row */}
           <div className="reveal-three mt-12 grid grid-cols-2 gap-5 border-t border-foreground/10 pt-10 sm:grid-cols-4">
-            {stats.map(({ icon: Icon, value, label }) => (
+            {currentStats.map(({ icon: Icon, value, label }) => (
               <div key={label} className="group">
                 <div className="flex items-center gap-2 text-ember">
                   <Icon className="size-3.5" />
@@ -383,15 +400,16 @@ function Hero({ onSelectCover }: { onSelectCover?: ((issue: MagazineIssue) => vo
 
         {/* Right: Carousel */}
         <div className="order-1 mx-auto w-[70vw] max-w-[340px] lg:order-2 lg:w-full">
-          <HeroCoverCarousel onSelect={onSelectCover} />
+          <HeroCoverCarousel onSelect={onSelectCover} items={coverItems} />
         </div>
       </div>
     </section>
   );
 }
 
-function CoverMarqueeTicker({ onSelect }: { onSelect: (issue: MagazineIssue) => void }) {
-  const duplicated = [...magazineIssues, ...magazineIssues];
+function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIssue) => void; items?: MagazineIssue[] | undefined }) {
+  const currentIssues = (items && items.length > 0) ? items : magazineIssues;
+  const duplicated = [...currentIssues, ...currentIssues];
   return (
     <div className="w-full border-y border-foreground/10 bg-card/60 py-5 overflow-hidden backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-5 mb-3 flex items-center justify-between">
@@ -401,7 +419,7 @@ function CoverMarqueeTicker({ onSelect }: { onSelect: (issue: MagazineIssue) => 
             <span className="relative inline-flex size-2 rounded-full bg-ember"></span>
           </span>
           <span className="text-[10px] font-bold uppercase tracking-widest text-ember">
-            Collection intégrale des couvertures IMPOSE ({magazineIssues.length} parutions)
+            Collection intégrale des couvertures IMPOSE ({currentIssues.length} parutions)
           </span>
         </div>
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:inline">
@@ -483,8 +501,9 @@ const partners = [
   },
 ];
 
-function PartnersSection() {
-  const duplicated = [...partners, ...partners, ...partners, ...partners];
+function PartnersSection({ items }: { items?: PartnerItem[] | undefined }) {
+  const activePartners = (items && items.length > 0) ? items.filter(p => p.is_active !== false) : partners;
+  const duplicated = [...activePartners, ...activePartners, ...activePartners, ...activePartners];
   return (
     <section id="partenaires" className="border-y border-foreground/10 bg-card/40 py-8 overflow-hidden backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-5 text-center mb-6">
@@ -549,7 +568,8 @@ function AboutSection() {
   );
 }
 
-function MagazineGallery({ onSelect }: { onSelect?: ((issue: MagazineIssue) => void) | undefined }) {
+function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssue) => void) | undefined; items?: MagazineIssue[] | undefined }) {
+  const currentIssues = (items && items.length > 0) ? items : magazineIssues;
   const [active, setActive] = useState<MagazineIssue | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -625,7 +645,7 @@ function MagazineGallery({ onSelect }: { onSelect?: ((issue: MagazineIssue) => v
           onTouchEnd={() => setIsPaused(false)}
           className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-6 [scrollbar-width:none]"
         >
-          {magazineIssues.map((item) => (
+          {currentIssues.map((item) => (
             <article
               key={item.id}
               className="group w-[72vw] max-w-[260px] shrink-0 snap-start cursor-pointer"
@@ -1076,10 +1096,11 @@ function Footer() {
         </div>
         <div className="flex flex-col gap-4 pt-7 text-xs text-primary-foreground/40 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 IMPOSE Magazine. Tous droits réservés.</p>
-          <div className="flex flex-wrap gap-5">
+          <div className="flex flex-wrap gap-5 items-center">
             <a href="#" className="hover:text-primary-foreground/70 transition-colors">Mentions légales</a>
             <a href="#" className="hover:text-primary-foreground/70 transition-colors">Politique de confidentialité</a>
             <a href="#" className="hover:text-primary-foreground/70 transition-colors">Conditions générales</a>
+            <a href="/admin" className="text-primary-foreground/40 hover:text-gold transition-colors text-[11px] font-medium">Administration</a>
           </div>
         </div>
       </div>
@@ -1088,6 +1109,7 @@ function Footer() {
 }
 
 function Index() {
+  const { covers, partners, metrics } = useDynamicData();
   const [selected, setSelected] = useState<PackageOption | null>(null);
   const [modalCover, setModalCover] = useState<MagazineIssue | null>(null);
   const choose = (pkg: PackageOption) => {
@@ -1099,14 +1121,14 @@ function Index() {
     <>
       <Header />
       <main>
-        <Hero onSelectCover={setModalCover} />
-        <CoverMarqueeTicker onSelect={setModalCover} />
+        <Hero onSelectCover={setModalCover} coverItems={covers} metricItems={metrics} />
+        <CoverMarqueeTicker onSelect={setModalCover} items={covers} />
         <AboutSection />
-        <MagazineGallery onSelect={setModalCover} />
+        <MagazineGallery onSelect={setModalCover} items={covers} />
         <BenefitsSection />
         <PackagesSection onSelect={choose} />
         <AudienceSection />
-        <PartnersSection />
+        <PartnersSection items={partners} />
         <ProcessSection />
         <ContactSection selected={selected} />
       </main>

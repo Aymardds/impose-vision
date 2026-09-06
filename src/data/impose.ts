@@ -15,6 +15,16 @@ import alexZanBiCover from "@/assets/landingImage/Alex Zan Bi.jpeg";
 import mohamedAlyDiabateCover from "@/assets/landingImage/Mohamed Aly Diabaté.jpeg";
 import darlyNguemaCover from "@/assets/landingImage/Darly Nguema.jpeg";
 
+import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
+import partner2 from "@/assets/landingImage/PartenaireImpose2.png";
+import partner3 from "@/assets/landingImage/PartenaireImpose3.png";
+import partner4 from "@/assets/landingImage/PartenaireImpose4.png";
+import partner5 from "@/assets/landingImage/PartenaireImpose5.png";
+import partnerMoro from "@/assets/landingImage/PartenaireImpose6.png";
+import partnerKoolboks from "@/assets/landingImage/PartenaireImpose6.png.webp";
+import partner7 from "@/assets/landingImage/PartenaireImpose7.png.webp";
+import partner8 from "@/assets/landingImage/PartenaireImpose8.png";
+
 export type MagazineIssue = {
   id: number;
   number: string;
@@ -211,3 +221,41 @@ export const packages: PackageOption[] = [
 export const objectives = ["Mettre en avant mon entreprise", "Présenter un produit ou service", "Être interviewé", "Valoriser mon parcours", "Promouvoir un événement", "Communication institutionnelle", "Campagne publicitaire", "Partenariat média", "Autre"];
 
 export const leadStatuses = ["NEW", "CONTACTED", "QUALIFIED", "OFFER_SENT", "NEGOTIATION", "WON", "LOST", "NURTURING"] as const;
+
+export interface PartnerItem {
+  id?: number | string | undefined;
+  name: string;
+  logo: string;
+  className: string;
+  website?: string | undefined;
+  order_index?: number | undefined;
+  is_active?: boolean | undefined;
+}
+
+export interface MetricItem {
+  id?: number | string | undefined;
+  key: string;
+  value: string;
+  label: string;
+  iconName: string;
+  order_index?: number | undefined;
+}
+
+export const initialPartners: PartnerItem[] = [
+  { id: 1, name: "#Ci20", logo: partner1, className: "h-9 sm:h-11 w-auto max-w-[140px]", is_active: true, order_index: 1 },
+  { id: 2, name: "Djoulatchê", logo: partner2, className: "h-10 sm:h-12 w-auto max-w-[140px] rounded-sm", is_active: true, order_index: 2 },
+  { id: 3, name: "AKILI", logo: partner3, className: "h-10 sm:h-12 w-auto max-w-[140px]", is_active: true, order_index: 3 },
+  { id: 4, name: "Yolicard", logo: partner4, className: "h-8 sm:h-10 w-auto max-w-[140px]", is_active: true, order_index: 4 },
+  { id: 5, name: "Fondation BKD", logo: partner5, className: "h-9 sm:h-11 w-auto max-w-[140px]", is_active: true, order_index: 5 },
+  { id: 6, name: "moro", logo: partnerMoro, className: "h-9 sm:h-11 w-auto max-w-[140px]", is_active: true, order_index: 6 },
+  { id: 7, name: "KOOLBOKS", logo: partnerKoolboks, className: "h-7 sm:h-9 w-auto max-w-[140px]", is_active: true, order_index: 7 },
+  { id: 8, name: "Venture Konect", logo: partner7, className: "h-9 sm:h-11 w-auto max-w-[160px]", is_active: true, order_index: 8 },
+  { id: 9, name: "INEXIUMUS", logo: partner8, className: "h-8 sm:h-10 w-auto max-w-[160px]", is_active: true, order_index: 9 },
+];
+
+export const initialMetrics: MetricItem[] = [
+  { id: 1, key: "editions", value: "+31", label: "Éditions publiées", iconName: "Star", order_index: 1 },
+  { id: 2, key: "pays", value: "+15", label: "Pays représentés", iconName: "Globe", order_index: 2 },
+  { id: 3, key: "leaders", value: "+500", label: "Leaders mis en avant", iconName: "TrendingUp", order_index: 3 },
+  { id: 4, key: "digital", value: "100%", label: "Média 100% Digital", iconName: "Zap", order_index: 4 },
+];
