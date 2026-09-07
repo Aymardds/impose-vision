@@ -838,7 +838,7 @@ function AdminPage() {
                 </h3>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Dès que vous avez cliqué sur <strong>Run</strong> dans l'éditeur SQL de Supabase, cliquez sur ce bouton pour peupler automatiquement votre base avec les <strong>16 couvertures officielles</strong>, <strong>9 partenaires</strong> et <strong>4 métriques</strong> existantes.
+                Dès que vous avez cliqué sur <strong>Run</strong> dans l'éditeur SQL de Supabase, cliquez sur ce bouton pour peupler automatiquement votre base avec les <strong>26 couvertures officielles</strong>, <strong>9 partenaires</strong> et <strong>4 métriques</strong> existantes.
               </p>
               <div>
                 <Button variant="editorial" size="lg" onClick={handleSeed} disabled={seeding} className="gap-2">

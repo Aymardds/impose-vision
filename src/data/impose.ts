@@ -14,6 +14,16 @@ import brianCover from "@/assets/landingImage/Bryan.png";
 import alexZanBiCover from "@/assets/landingImage/Alex Zan Bi.jpeg";
 import mohamedAlyDiabateCover from "@/assets/landingImage/Mohamed Aly Diabaté.jpeg";
 import darlyNguemaCover from "@/assets/landingImage/Darly Nguema.jpeg";
+import moroCover from "@/assets/landingImage/Moro Application.jpeg";
+import zagbadiCover from "@/assets/landingImage/ zagbadi.JPG";
+import grouilleurCover from "@/assets/landingImage/Grouilleur3.0.JPG";
+import adingraCover from "@/assets/landingImage/wilfried Adingra.JPG";
+import oulaiCover from "@/assets/landingImage/Daniel Oulai.JPG";
+import danonCover from "@/assets/landingImage/Charlene Danon.JPG";
+import mylenCharleneCover from "@/assets/landingImage/Mylen & Charlene.JPG";
+import assaleCover from "@/assets/landingImage/Assalé Tiémoko.JPG";
+import gueboCover from "@/assets/landingImage/Israel Guebo.JPG";
+import auroreCover from "@/assets/landingImage/Axel Aurore.JPG";
 
 import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
 import partner2 from "@/assets/landingImage/PartenaireImpose2.png";
@@ -58,9 +68,19 @@ export const magazineIssues: MagazineIssue[] = [
     featured: true,
   },
   {
+    id: 29,
+    number: "N°29",
+    title: "Quand la technologie tente de structurer l'informel africain",
+    date: "Mai 2026",
+    image: moroCover,
+    description: "Inclusion financière, données et éducation financière : une nouvelle approche pour rendre les micro-entrepreneurs visibles et finançables. 1,7 Milliard FCFA dans l'UEMOA.",
+    person: "Moro Application",
+    featured: true,
+  },
+  {
     id: 28,
     number: "N°28",
-    title: "Africa's Business Heroes",
+    title: "Africa's Business Heroes — Le nouveau pouvoir féminin de l'innovation",
     date: "Avril 2026",
     image: gwladysCover,
     description: "Gwladys Alahassa — Directrice Générale Qotto Bénin. Elles déplacent les lignes : le nouveau pouvoir féminin de l'innovation.",
@@ -158,6 +178,86 @@ export const magazineIssues: MagazineIssue[] = [
     featured: false,
   },
   {
+    id: 20,
+    number: "N°20",
+    title: "Fintech : Vers une révolution inclusive de la finance en Afrique de l'Ouest",
+    date: "Août 2025",
+    image: zagbadiCover,
+    description: "Régis Zagbadi — Expert Risques & Compliance FinTech UEMOA | Fondateur IZAQA. Bientôt les paiements instantanés pour tous, Mobile Money et PI-SPI.",
+    person: "Régis Zagbadi",
+    featured: true,
+  },
+  {
+    id: 19,
+    number: "N°19",
+    title: "L'art contemporain, entre révolte esthétique et questionnements identitaires",
+    date: "Juillet 2025",
+    image: grouilleurCover,
+    description: "Olatidoye Iburaim Olaniyi (Grouilleur 3.0) — Photographe professionnel. Prix Pierre Castel 2025 : « DJOLI » sacré vainqueur. Le champ du producteur devient notre frigo.",
+    person: "Olatidoye Iburaim Olaniyi (Grouilleur 3.0)",
+    featured: false,
+  },
+  {
+    id: 18,
+    number: "N°18",
+    title: "La startup africaine qui redéfinit la mobilité urbaine",
+    date: "Juin 2025",
+    image: adingraCover,
+    description: "Wilfried Adingra — Founder & CEO at GLSAfrica. Avec plus de 50 Millions de FCFA préparez l'avenir, incubez l'innovation & Un bond en avant dans l'IA.",
+    person: "Wilfried Adingra",
+    featured: false,
+  },
+  {
+    id: 17,
+    number: "N°17",
+    title: "L'IA au service de l'agriculture durable en Afrique",
+    date: "Mai 2024",
+    image: oulaiCover,
+    description: "Daniel Oulaï — PDG de la GRAINOTECH SAS, entrepreneur social engagé. +7000 inscrits en 2025 dont 55% venus de l'étranger & Google s'associe à des acteurs tech africains.",
+    person: "Daniel Oulaï",
+    featured: false,
+  },
+  {
+    id: 16,
+    number: "N°16",
+    title: "« La littérature est un outil puissant pour toute chose qui demande de s'instruire »",
+    date: "Avril 2024",
+    image: danonCover,
+    description: "Charlène Danon — Journaliste, scénariste-productrice et écrivaine. Financement : 49 jeunes bénéficient de 36 millions à Gagnoa & Gérez votre projet avec MORO.",
+    person: "Charlène Danon",
+    featured: false,
+  },
+  {
+    id: 15,
+    number: "N°15",
+    title: "Puissance féminine : Entre ambition et audace",
+    date: "Mars 2024",
+    image: mylenCharleneCover,
+    description: "Mylène Amon (Paper-artist) & Charlène Valmorin (My Place Events & AbidjanaisesInTech). L'IA Africaine anti-fake news & 4 Startups fintech accompagnées.",
+    person: "Mylène Amon & Charlène Valmorin",
+    featured: false,
+  },
+  {
+    id: 14,
+    number: "N°14",
+    title: "« C'est le meilleur héritage que je puisse laisser à cette jeunesse »",
+    date: "Février 2024",
+    image: assaleCover,
+    description: "Assalé Tiémoko — Député-Maire de Tiassalé et Président de mouvement ADCI. CI20 MEETUP : Un tournant décisif pour les startups ivoiriennes.",
+    person: "Assalé Tiémoko",
+    featured: false,
+  },
+  {
+    id: 12,
+    number: "N°12",
+    title: "Médias, Innovation & Technologie IA transforment nos sociétés africaines",
+    date: "Décembre 2024",
+    image: gueboCover,
+    description: "Israël Guébo — Vice-Président ADCI, Consultant en communication et médias. 20 Jeunes entrepreneurs en Corée du Sud & Sommet SACH 2025.",
+    person: "Israël Guébo",
+    featured: false,
+  },
+  {
     id: 11,
     number: "N°11",
     title: "2 Milliards disponibles pour la jeunesse ivoirienne",
@@ -185,6 +285,16 @@ export const magazineIssues: MagazineIssue[] = [
     image: agathonCover,
     description: "Polus Agathon — Spécialiste en Communication Digitale, Formateur certifié Méta.",
     person: "Polus Agathon",
+    featured: false,
+  },
+  {
+    id: 6,
+    number: "N°06",
+    title: "Passionjob, le chemin d'accès à votre épanouissement !",
+    date: "Juin 2023",
+    image: auroreCover,
+    description: "Axelle Aurore — Choisir de vivre selon ses passions est un passeport pour la réussite ! #Mentorat (Re)Orientation Professionnelle.",
+    person: "Axelle Aurore",
     featured: false,
   },
   {

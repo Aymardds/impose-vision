@@ -326,7 +326,7 @@ export function useDynamicData() {
       await client.from("partners").insert(partnersToInsert);
 
       await fetchData();
-      return { success: true, message: "Les 16 couvertures, 9 partenaires et 4 métriques ont été injectés dans Supabase avec succès !" };
+      return { success: true, message: "Les 26 couvertures, 9 partenaires et 4 métriques ont été injectés dans Supabase avec succès !" };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, message: `Erreur lors de l'injection : ${msg}` };

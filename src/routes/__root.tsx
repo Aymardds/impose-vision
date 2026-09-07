@@ -84,9 +84,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "publisher", content: "IMPOSE Magazine" },
       { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
       { name: "googlebot", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
-      { name: "format-detection", content: "telephone=no, address=no, email=no" },
+      { property: "og:site_name", content: "IMPOSE Magazine" },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://impose-ci.com/og-image.jpg" },
+      { property: "og:image:secure_url", content: "https://impose-ci.com/og-image.jpg" },
+      { property: "og:image:type", content: "image/jpeg" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://impose-ci.com/og-image.jpg" },
     ],
     links: [
       {
