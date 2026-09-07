@@ -330,13 +330,12 @@ function AdminPage() {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="Entrez votre code..."
-                className={`w-full border bg-background px-4 py-3 text-sm outline-none transition-all rounded-sm focus:border-gold focus:ring-2 focus:ring-gold/20 ${
-                  pinError ? "border-destructive ring-1 ring-destructive" : "border-input"
-                }`}
+                className={`w-full border bg-background px-4 py-3 text-sm outline-none transition-all rounded-sm focus:border-gold focus:ring-2 focus:ring-gold/20 ${pinError ? "border-destructive ring-1 ring-destructive" : "border-input"
+                  }`}
                 autoFocus
               />
               <p className="mt-2 text-[11px] text-muted-foreground/70">
-                Code d'accès par défaut : <span className="text-gold font-mono font-bold">impose2026</span>
+                Code d'accès par défaut : <span className="text-gold font-mono font-bold">chez votre administrateur</span>
               </p>
             </div>
 
@@ -379,11 +378,10 @@ function AdminPage() {
           <div className="flex items-center gap-3">
             {/* Status indicator */}
             <div
-              className={`hidden sm:flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold border ${
-                isSupabaseActive
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-              }`}
+              className={`hidden sm:flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold border ${isSupabaseActive
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                }`}
             >
               <span className={`size-2 rounded-full ${isSupabaseActive ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
               {isSupabaseActive ? "Supabase Connecté" : "Mode Autonome"}
@@ -534,11 +532,10 @@ function AdminPage() {
                     <button
                       type="button"
                       onClick={() => updateCover(c.id, { featured: !c.featured })}
-                      className={`absolute top-2 right-2 rounded-full px-2 py-0.5 text-[9px] font-bold shadow-md backdrop-blur-md transition-all ${
-                        c.featured
-                          ? "bg-gold text-black hover:bg-gold/80"
-                          : "bg-black/60 text-white/60 hover:text-white"
-                      }`}
+                      className={`absolute top-2 right-2 rounded-full px-2 py-0.5 text-[9px] font-bold shadow-md backdrop-blur-md transition-all ${c.featured
+                        ? "bg-gold text-black hover:bg-gold/80"
+                        : "bg-black/60 text-white/60 hover:text-white"
+                        }`}
                       title="Cliquer pour basculer la présence dans le Carrousel Hero"
                     >
                       {c.featured ? "★ Hero" : "Galerie"}
@@ -581,9 +578,8 @@ function AdminPage() {
               {partners.map((p) => (
                 <div
                   key={p.id}
-                  className={`relative flex flex-col items-center justify-between rounded-sm border p-5 transition-all ${
-                    p.is_active !== false ? "border-foreground/10 bg-card hover:border-gold/40" : "border-destructive/20 bg-card/40 opacity-50"
-                  }`}
+                  className={`relative flex flex-col items-center justify-between rounded-sm border p-5 transition-all ${p.is_active !== false ? "border-foreground/10 bg-card hover:border-gold/40" : "border-destructive/20 bg-card/40 opacity-50"
+                    }`}
                 >
                   <div className="h-16 w-full flex items-center justify-center p-2">
                     <img src={p.logo} alt={p.name} className="max-h-12 max-w-full object-contain" />
@@ -595,9 +591,8 @@ function AdminPage() {
                     <button
                       type="button"
                       onClick={() => updatePartner(p.id ?? p.name, { is_active: !(p.is_active !== false) })}
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                        p.is_active !== false ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${p.is_active !== false ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"
+                        }`}
                     >
                       {p.is_active !== false ? "Actif" : "Masqué"}
                     </button>
