@@ -334,9 +334,6 @@ function AdminPage() {
                   }`}
                 autoFocus
               />
-              <p className="mt-2 text-[11px] text-muted-foreground/70">
-                Code d'accès par défaut : <span className="text-gold font-mono font-bold">chez votre administrateur</span>
-              </p>
             </div>
 
             <Button type="submit" variant="editorial" size="lg" className="w-full">
