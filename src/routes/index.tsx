@@ -25,6 +25,29 @@ import partnerKoolboks from "@/assets/landingImage/PartenaireImpose6.png.webp";
 import partner7 from "@/assets/landingImage/PartenaireImpose7.png.webp";
 import partner8 from "@/assets/landingImage/PartenaireImpose8.png";
 
+const faqs = [
+  {
+    q: "Qu'est-ce qu'IMPOSE Magazine ?",
+    a: "IMPOSE est le magazine panafricain 100% digital consacré aux leaders, entrepreneurs, innovateurs et bâtisseurs qui transforment l'Afrique. À travers des parutions interactives et un design éditorial haut de gamme, nous mettons en lumière les réussites qui façonnent l'avenir du continent.",
+  },
+  {
+    q: "Comment proposer une personnalité ou être interviewé dans IMPOSE ?",
+    a: "Chaque candidature ou proposition est examinée avec rigueur par notre comité éditorial. Renseignez simplement votre besoin via notre formulaire de devis. Notre équipe vous recontacte sous 24h ouvrées pour qualifier votre demande et cadrer le format éditorial le plus adapté.",
+  },
+  {
+    q: "Quelles formules et prestations sont disponibles ?",
+    a: "IMPOSE propose des formules complètes (Découverte, Croissance, Impact, Institutionnel, Couverture Signature) ainsi qu'un configurateur à la carte : articles d'autorité, interviews vidéo prestige, reportages exclusifs, couvertures dédiées et relais multicanal auprès de +50 000 décideurs.",
+  },
+  {
+    q: "Sous quel délai reçois-je mon devis personnalisé ?",
+    a: "Dès réception de vos prestations sélectionnées ou de votre projet, notre équipe prépare une proposition détaillée, chiffrée et sur-mesure, transmise sous 24 heures ouvrées de manière 100% gratuite et sans aucun engagement.",
+  },
+  {
+    q: "Quelle est l'audience et la portée d'IMPOSE Magazine ?",
+    a: "IMPOSE compte une communauté de plus de 50 000 lecteurs actifs (entrepreneurs, directeurs généraux, investisseurs, cadres dirigeants et institutions) répartis dans plus de 15 pays en Afrique (Côte d'Ivoire, Sénégal, Bénin, Cameroun, Gabon, Togo...) et à l'international.",
+  },
+];
+
 const structuredData = {
   "@context": "https://schema.org",
   "@graph": [
@@ -50,6 +73,7 @@ const structuredData = {
       "contactPoint": {
         "@type": "ContactPoint",
         "email": "contact@impose-ci.com",
+        "telephone": "+2250757528302",
         "contactType": "editorial",
         "availableLanguage": ["French", "English"]
       }
@@ -74,6 +98,65 @@ const structuredData = {
         "@id": "https://impose-ci.com/#organization"
       },
       "inLanguage": "fr-FR"
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://impose-ci.com/#faq",
+      "mainEntity": faqs.map((f) => ({
+        "@type": "Question",
+        "name": f.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": f.a,
+        },
+      })),
+    },
+    {
+      "@type": "Service",
+      "@id": "https://impose-ci.com/#services",
+      "name": "Prestations Éditoriales & Visibilité Panafricaine",
+      "provider": {
+        "@id": "https://impose-ci.com/#organization"
+      },
+      "serviceType": "Média Digital, Interviews Exécutives, Campagnes de Notoriété, Couverture Magazine",
+      "areaServed": ["Côte d'Ivoire", "Sénégal", "Bénin", "Cameroun", "France", "Afrique"],
+      "description": "Valorisation des leaders, parutions dans le magazine 100% digital IMPOSE et diffusion multicanale."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://impose-ci.com/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://impose-ci.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Éditions",
+          "item": "https://impose-ci.com/#editions"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Prestations & Devis",
+          "item": "https://impose-ci.com/#offres"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "FAQ",
+          "item": "https://impose-ci.com/#faq"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "name": "Demande de Devis",
+          "item": "https://impose-ci.com/#contact"
+        }
+      ]
     }
   ]
 };
@@ -116,6 +199,8 @@ export const Route = createFileRoute("/")({
     links: [
       { rel: "canonical", href: "https://impose-ci.com/" },
       { rel: "alternate", hrefLang: "fr", href: "https://impose-ci.com/" },
+      { rel: "alternate", hrefLang: "fr-CI", href: "https://impose-ci.com/" },
+      { rel: "alternate", hrefLang: "fr-SN", href: "https://impose-ci.com/" },
       { rel: "alternate", hrefLang: "x-default", href: "https://impose-ci.com/" },
     ],
     scripts: [
@@ -154,7 +239,8 @@ function Header() {
   const [scrolled, setScrolled] = useState(false);
   const links = [
     ["Accueil", "#accueil"], ["Le Magazine", "#magazine"], ["Nos éditions", "#editions"],
-    ["Partenaires", "#partenaires"], ["Prestations & Devis", "#offres"], ["À propos", "#apropos"], ["Contact", "#contact"]
+    ["Partenaires", "#partenaires"], ["Prestations & Devis", "#offres"], ["À propos", "#apropos"],
+    ["FAQ", "#faq"], ["Contact", "#contact"]
   ];
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -280,6 +366,9 @@ function HeroCoverShowcase({
             className="w-full h-full object-cover transition-opacity duration-500"
             loading="eager"
             fetchPriority="high"
+            decoding="async"
+            width={711}
+            height={1084}
           />
 
           {/* Scrim gradient top and bottom for readability */}
@@ -539,6 +628,9 @@ function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIss
                 alt={`Couverture IMPOSE ${item.number} — ${item.person} : ${item.title}`}
                 className="h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
+                width={128}
+                height={195}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-2">
                 <span className="text-[9px] font-extrabold text-gold">{item.number}</span>
@@ -761,6 +853,9 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
                   alt={`Couverture IMPOSE ${item.number} : ${item.title}`}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                   loading="lazy"
+                  decoding="async"
+                  width={260}
+                  height={396}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 <div className="absolute inset-x-0 top-3 flex items-center justify-between px-3">
@@ -815,7 +910,14 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
               <X />
             </Button>
             <div className="overflow-hidden rounded-sm shadow-2xl" style={{ aspectRatio: "711 / 1084" }}>
-              <img src={active.image} alt={active.title} className="h-full w-full object-cover" />
+              <img
+                src={active.image}
+                alt={`Couverture IMPOSE ${active.number} — ${active.person} : ${active.title}`}
+                className="h-full w-full object-cover"
+                decoding="async"
+                width={384}
+                height={585}
+              />
             </div>
             <div className="mt-4 text-center text-white">
               <span className="rounded-sm bg-ember px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">
@@ -1241,6 +1343,54 @@ function ProcessSection() {
   );
 }
 
+function FaqSection() {
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+  return (
+    <section id="faq" className="bg-paper py-20 lg:py-28 border-t border-foreground/10">
+      <div className="mx-auto max-w-5xl px-5 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Questions fréquentes</p>
+          <h2 className="mt-4 font-display text-4xl sm:text-6xl">Tout savoir sur IMPOSE</h2>
+          <p className="mt-4 text-base text-muted-foreground">
+            Retrouvez les réponses aux questions les plus courantes sur nos parutions, notre audience et le processus de parution.
+          </p>
+        </div>
+
+        <div className="mt-12 space-y-3">
+          {faqs.map((faq, idx) => {
+            const isOpen = openIdx === idx;
+            return (
+              <div
+                key={faq.q}
+                className="border border-foreground/15 bg-card rounded-sm overflow-hidden transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenIdx(isOpen ? null : idx)}
+                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-display text-lg sm:text-xl font-medium text-foreground hover:text-gold transition-colors"
+                  aria-expanded={isOpen}
+                >
+                  <span>{faq.q}</span>
+                  <ChevronRight
+                    className={`size-5 text-gold shrink-0 transition-transform duration-300 ${
+                      isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="px-5 pb-6 sm:px-6 sm:pb-6 text-sm sm:text-base leading-relaxed text-muted-foreground border-t border-foreground/10 pt-4 animate-in fade-in duration-200">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 type ContactFormProps = {
   selected: PackageOption | null;
   selectedPrestations: string[];
@@ -1466,14 +1616,14 @@ function ContactForm({
         </div>
       )}
 
-      <input className={field} name="firstName" placeholder="Prénom *" required disabled={loading} />
-      <input className={field} name="lastName" placeholder="Nom *" required disabled={loading} />
-      <input className={field} name="company" placeholder="Entreprise / Organisation *" required disabled={loading} />
-      <input className={field} name="position" placeholder="Fonction" disabled={loading} />
-      <input className={field} name="email" type="email" placeholder="Email professionnel *" required disabled={loading} />
-      <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required disabled={loading} />
-      <input className={field} name="country" placeholder="Pays (ex: Côte d'Ivoire, Sénégal, France...) *" required disabled={loading} />
-      <input className={field} name="sector" placeholder="Secteur d'activité *" required disabled={loading} />
+      <input className={field} name="firstName" placeholder="Prénom *" required disabled={loading} autoComplete="given-name" aria-label="Prénom" />
+      <input className={field} name="lastName" placeholder="Nom *" required disabled={loading} autoComplete="family-name" aria-label="Nom" />
+      <input className={field} name="company" placeholder="Entreprise / Organisation *" required disabled={loading} autoComplete="organization" aria-label="Entreprise ou Organisation" />
+      <input className={field} name="position" placeholder="Fonction" disabled={loading} autoComplete="organization-title" aria-label="Fonction" />
+      <input className={field} name="email" type="email" placeholder="Email professionnel *" required disabled={loading} autoComplete="email" aria-label="Email professionnel" />
+      <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required disabled={loading} autoComplete="tel" aria-label="Téléphone ou WhatsApp" />
+      <input className={field} name="country" placeholder="Pays (ex: Côte d'Ivoire, Sénégal, France...) *" required disabled={loading} autoComplete="country-name" aria-label="Pays" />
+      <input className={field} name="sector" placeholder="Secteur d'activité *" required disabled={loading} aria-label="Secteur d'activité" />
       
       <select className={field} name="objective" defaultValue="" required disabled={loading}>
         <option value="" disabled>Votre objectif prioritaire *</option>
@@ -1633,7 +1783,7 @@ function Footer() {
               <a className="block hover:text-primary-foreground transition-colors" href="#editions">Nos éditions</a>
               <a className="block hover:text-primary-foreground transition-colors" href="#partenaires">Partenaires</a>
               <a className="block hover:text-primary-foreground transition-colors" href="#apropos">À propos</a>
-              <a className="block hover:text-primary-foreground transition-colors" href="#">Équipe</a>
+              <a className="block hover:text-primary-foreground transition-colors" href="#faq">FAQ</a>
             </div>
           </div>
           <div>
@@ -1711,6 +1861,7 @@ function Index() {
         <AudienceSection />
         <PartnersSection items={partners} />
         <ProcessSection />
+        <FaqSection />
         <ContactSection
           selected={selected}
           selectedPrestations={selectedPrestations}

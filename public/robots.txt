@@ -1,22 +1,21 @@
+# IMPOSE Magazine — robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# Spécifique aux robots moteurs de recherche
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
 
-User-agent: Twitterbot
+User-agent: Applebot
 Allow: /
+Disallow: /admin
 
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: *
-Allow: /
-
+# Déclaration du Sitemap XML
 Sitemap: https://impose-ci.com/sitemap.xml
