@@ -44,7 +44,24 @@ export type MagazineIssue = {
   description: string;
   person: string;
   featured: boolean;
+  link?: string;
 };
+
+export function extractEditionNumber(numStr: string): number {
+  const match = numStr.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+export function sortCoversChronological(issues: MagazineIssue[], order: "desc" | "asc" = "desc"): MagazineIssue[] {
+  return [...issues].sort((a, b) => {
+    const numA = extractEditionNumber(a.number);
+    const numB = extractEditionNumber(b.number);
+    if (numB !== numA) {
+      return order === "desc" ? numB - numA : numA - numB;
+    }
+    return order === "desc" ? (Number(b.id) || 0) - (Number(a.id) || 0) : (Number(a.id) || 0) - (Number(b.id) || 0);
+  });
+}
 
 export const magazineIssues: MagazineIssue[] = [
   {
@@ -312,20 +329,181 @@ export const magazineIssues: MagazineIssue[] = [
 export type PackageOption = {
   id: string;
   name: string;
-  priceFcfa: string;
-  priceEur: string;
+  tagline?: string;
+  priceFcfa?: string;
+  priceEur?: string;
   description: string;
   features: string[];
   badge?: string;
   featured?: boolean;
 };
 
+export interface ServicePrestation {
+  id: string;
+  name: string;
+  category: "editorial" | "visual" | "diffusion" | "strategy";
+  categoryLabel: string;
+  description: string;
+  recommendedFor?: string;
+  badge?: string;
+}
+
+export const availablePrestations: ServicePrestation[] = [
+  {
+    id: "article_editorial",
+    name: "Article éditorial dédié",
+    category: "editorial",
+    categoryLabel: "Rédaction & Journalisme",
+    description: "Récit immersif et valorisation journalistique de votre parcours, entreprise ou innovation.",
+    recommendedFor: "Visibilité & storytelling",
+    badge: "Populaire",
+  },
+  {
+    id: "interview_dirigeant",
+    name: "Interview dirigeant / Portrait exclusif",
+    category: "editorial",
+    categoryLabel: "Rédaction & Journalisme",
+    description: "Grand entretien de fond valorisant votre leadership, vision sectorielle et réalisations.",
+    recommendedFor: "CEOs & Fondateurs",
+    badge: "Prestige",
+  },
+  {
+    id: "dossier_impact",
+    name: "Dossier d'impact thématique (2 à 4 pages)",
+    category: "editorial",
+    categoryLabel: "Rédaction & Journalisme",
+    description: "Analyse approfondie, cas d'usage, infographies clés et immersion éditoriale complète.",
+    recommendedFor: "PME & Grandes entreprises",
+  },
+  {
+    id: "couverture_magazine",
+    name: "Mise en avant en Couverture IMPOSE",
+    category: "diffusion",
+    categoryLabel: "Diffusion & Notoriété",
+    description: "Positionnement en Une de l'édition avec distribution digitale panafricaine prioritaire.",
+    recommendedFor: "Notoriété maximale",
+    badge: "Exclusif",
+  },
+  {
+    id: "shooting_visuels",
+    name: "Shooting photo & Direction visuelle",
+    category: "visual",
+    categoryLabel: "Création Visuelle",
+    description: "Portraits haute définition et univers photographique éditorial sur-mesure.",
+    recommendedFor: "Image de marque haut de gamme",
+  },
+  {
+    id: "pack_reseaux",
+    name: "Visuels & Infographies réseaux sociaux",
+    category: "visual",
+    categoryLabel: "Création Visuelle",
+    description: "Déclinaisons graphiques professionnelles pour LinkedIn, Instagram et WhatsApp.",
+    recommendedFor: "Campagnes digitales",
+  },
+  {
+    id: "relais_multicanal",
+    name: "Relais multicanal (LinkedIn, Meta, Web)",
+    category: "diffusion",
+    categoryLabel: "Diffusion & Notoriété",
+    description: "Campagne sponsorisée ciblée vers notre communauté de décideurs, investisseurs et cadres.",
+    recommendedFor: "Trafic & notoriété",
+    badge: "Très demandé",
+  },
+  {
+    id: "mise_en_avant_web",
+    name: "Mise en avant sur le site officiel IMPOSE",
+    category: "diffusion",
+    categoryLabel: "Diffusion & Notoriété",
+    description: "Référencement SEO optimisé et visibilité permanente dans les rubriques à la Une.",
+    recommendedFor: "Présence web continue",
+  },
+  {
+    id: "partenariat_annuel",
+    name: "Programme annuel de communication (12 mois)",
+    category: "strategy",
+    categoryLabel: "Stratégie & Partenariat",
+    description: "Plan média structuré sur 12 mois, parutions récurrentes et suivi dédié personnalisé.",
+    recommendedFor: "Grandes entreprises & Institutions",
+    badge: "Institutionnel",
+  },
+  {
+    id: "relations_presse",
+    name: "Partenariat média événementiel & RP",
+    category: "strategy",
+    categoryLabel: "Stratégie & Partenariat",
+    description: "Couverture médiatique de votre sommet, conférence, lancement de produit ou levée de fonds.",
+    recommendedFor: "Événements & Annonces clés",
+  },
+];
+
 export const packages: PackageOption[] = [
-  { id: "discovery", name: "Pack Découverte", priceFcfa: "70 000 FCFA", priceEur: "≈ 107 €", description: "Pour faire ses premiers pas dans l’univers IMPOSE.", features: ["Article éditorial dédié", "Visuel de publication", "Relais sur un canal digital"] },
-  { id: "growth", name: "Pack Croissance", priceFcfa: "90 000 FCFA", priceEur: "≈ 137 €", description: "Pour les entrepreneurs et PME qui développent leur visibilité.", features: ["Interview ou portrait", "Création des éléments visuels", "Relais multicanal", "Mise en avant sur le site"], badge: "Populaire", featured: true },
-  { id: "impact", name: "Pack Impact", priceFcfa: "150 000 FCFA", priceEur: "≈ 229 €", description: "Une communication ambitieuse et une présence éditoriale renforcée.", features: ["Dossier éditorial enrichi", "Interview du dirigeant", "Campagne digitale dédiée", "Mise en avant prioritaire"] },
-  { id: "signature", name: "Pack Signature", priceFcfa: "200 000 FCFA", priceEur: "≈ 305 €", description: "Une expérience premium pour affirmer votre image et votre positionnement.", features: ["Production éditoriale premium", "Shooting ou direction visuelle", "Diffusion multicanale", "Accompagnement personnalisé"] },
-  { id: "annual", name: "Pack Exclusif Annuel", priceFcfa: "650 000 FCFA / an", priceEur: "≈ 991 € / an", description: "Une présence régulière pour les entreprises et organisations.", features: ["Programme éditorial sur 12 mois", "Présence récurrente", "Partenariat média prioritaire", "Suivi dédié"], badge: "Meilleure valeur" },
+  {
+    id: "discovery",
+    name: "Formule Découverte",
+    tagline: "Premiers pas & Notoriété ciblée",
+    description: "Pour faire ses premiers pas et valoriser une initiative, un projet ou une nomination.",
+    features: [
+      "Article éditorial dédié",
+      "Visuel de publication professionnel",
+      "Relais sur un canal digital officiel",
+      "Devis personnalisé sous 24h",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Formule Croissance",
+    tagline: "Entrepreneurs & PME en développement",
+    description: "Pour les entrepreneurs et PME qui développent leur notoriété et visibilité de marque.",
+    features: [
+      "Interview ou portrait exclusif",
+      "Création des éléments visuels",
+      "Relais multicanal ciblé",
+      "Mise en avant sur le site officiel",
+      "Devis personnalisé sous 24h",
+    ],
+    badge: "Populaire",
+    featured: true,
+  },
+  {
+    id: "impact",
+    name: "Formule Impact",
+    tagline: "Présence éditoriale & Forte visibilité",
+    description: "Une communication ambitieuse et une présence éditoriale renforcée pour asseoir votre autorité.",
+    features: [
+      "Dossier éditorial enrichi",
+      "Interview approfondie du dirigeant",
+      "Campagne digitale dédiée",
+      "Mise en avant prioritaire",
+      "Devis personnalisé sous 24h",
+    ],
+  },
+  {
+    id: "signature",
+    name: "Formule Signature",
+    tagline: "Expérience haut de gamme & Leadership",
+    description: "Une expérience premium pour affirmer votre image, positionnement et envergure panafricaine.",
+    features: [
+      "Production éditoriale premium",
+      "Shooting ou direction visuelle",
+      "Diffusion multicanale panafricaine",
+      "Accompagnement éditorial personnalisé",
+      "Devis personnalisé sous 24h",
+    ],
+  },
+  {
+    id: "annual",
+    name: "Formule Annuelle / Partenariat",
+    tagline: "Présence institutionnelle sur 12 mois",
+    description: "Un programme sur-mesure pour les institutions, grands groupes et marques en quête de présence continue.",
+    features: [
+      "Programme éditorial sur 12 mois",
+      "Présence récurrente dans les numéros",
+      "Partenariat média prioritaire",
+      "Conseiller éditorial dédié",
+      "Devis personnalisé sous 24h",
+    ],
+    badge: "Sur-mesure",
+  },
 ];
 
 export const objectives = ["Mettre en avant mon entreprise", "Présenter un produit ou service", "Être interviewé", "Valoriser mon parcours", "Promouvoir un événement", "Communication institutionnelle", "Campagne publicitaire", "Partenariat média", "Autre"];

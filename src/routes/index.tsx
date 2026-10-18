@@ -2,14 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight,
-  Facebook, Instagram, Linkedin, Mail, Menu, Phone, X, Star, Zap, TrendingUp, Globe
+  Facebook, Instagram, Linkedin, Mail, Menu, Phone, X, Star, Zap, TrendingUp, Globe,
+  Eye, Clock, Sparkles, Plus, CheckCircle2, FileText, SlidersHorizontal, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendLeadToGoogleSheets, type LeadData } from "@/lib/googleSheets";
 import { getSupabase } from "@/lib/supabase";
 import { useDynamicData } from "@/hooks/useDynamicData";
-import { magazineIssues, objectives, packages, type MagazineIssue, type PackageOption, type PartnerItem, type MetricItem } from "@/data/impose";
+import {
+  magazineIssues, objectives, packages, availablePrestations, sortCoversChronological,
+  type MagazineIssue, type PackageOption, type ServicePrestation, type PartnerItem, type MetricItem
+} from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
 import partner2 from "@/assets/landingImage/PartenaireImpose2.png";
@@ -150,7 +154,7 @@ function Header() {
   const [scrolled, setScrolled] = useState(false);
   const links = [
     ["Accueil", "#accueil"], ["Le Magazine", "#magazine"], ["Nos éditions", "#editions"],
-    ["Partenaires", "#partenaires"], ["Nos offres", "#offres"], ["À propos", "#apropos"], ["Contact", "#contact"]
+    ["Partenaires", "#partenaires"], ["Prestations & Devis", "#offres"], ["À propos", "#apropos"], ["Contact", "#contact"]
   ];
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -173,7 +177,7 @@ function Header() {
         </nav>
         <div className="flex items-center gap-3">
           <Button asChild variant="editorial" size="sm" className="hidden sm:inline-flex">
-            <a href="#contact">Présenter mon projet</a>
+            <a href="#contact">Demander un devis</a>
           </Button>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(!open)} aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}>
             {open ? <X /> : <Menu />}
@@ -187,7 +191,7 @@ function Header() {
           ))}
           <div className="pt-5">
             <Button asChild variant="editorial" size="lg" className="w-full">
-              <a href="#contact">Présenter mon projet</a>
+              <a href="#contact">Demander un devis</a>
             </Button>
           </div>
         </nav>
@@ -196,134 +200,218 @@ function Header() {
   );
 }
 
-function HeroCoverCarousel({ onSelect, items }: { onSelect?: ((issue: MagazineIssue) => void) | undefined; items?: MagazineIssue[] | undefined }) {
+function HeroCoverShowcase({
+  onSelect,
+  items,
+}: {
+  onSelect?: ((issue: MagazineIssue) => void) | undefined;
+  items?: MagazineIssue[] | undefined;
+}) {
   const currentIssues = (items && items.length > 0) ? items : magazineIssues;
-  const featuredList = currentIssues.filter(c => c.featured);
-  const featured = featuredList.length > 0 ? featuredList : currentIssues.slice(0, 6);
+  // Strict chronological sort from newest (N°31) to oldest (N°03)
+  const sortedIssues = sortCoversChronological(currentIssues, "desc");
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
+  const total = sortedIssues.length;
+  const current = sortedIssues[active] || sortedIssues[0];
+
   const next = useCallback(() => {
-    setActive(prev => (prev + 1) % featured.length);
-  }, [featured.length]);
+    setActive((prev) => (prev + 1) % total);
+  }, [total]);
 
   const prev = useCallback(() => {
-    setActive(prev => (prev - 1 + featured.length) % featured.length);
-  }, [featured.length]);
+    setActive((prev) => (prev - 1 + total) % total);
+  }, [total]);
 
   const goTo = useCallback((i: number) => {
     setActive(i);
   }, []);
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [prev, next]);
+
+  // Auto-play interval: 5.5 seconds, paused on hover
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
-      setActive(prev => (prev + 1) % featured.length);
-    }, 4000);
+      setActive((prev) => (prev + 1) % total);
+    }, 5500);
     return () => clearInterval(interval);
-  }, [isPaused, featured.length]);
+  }, [isPaused, total]);
+
+  // Quick jump pill editions (first 7 chronologically)
+  const quickPills = sortedIssues.slice(0, 7);
 
   return (
     <div
-      className="relative group"
+      className="relative flex flex-col items-center justify-center w-full group select-none py-2"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      <div
-        className="relative overflow-hidden rounded-sm shadow-2xl transition-all duration-500 cursor-pointer"
-        style={{ aspectRatio: "711 / 1084" }}
-        onClick={() => {
-          const item = featured[active];
-          if (item && onSelect) onSelect(item);
-        }}
-      >
-        {featured.map((item, i) => (
-          <div
-            key={item.id}
-            className="absolute inset-0 transition-all duration-700 ease-out"
-            style={{
-              opacity: i === active ? 1 : 0,
-              transform: i === active ? "scale(1)" : "scale(1.05)",
-              zIndex: i === active ? 1 : 0,
-              pointerEvents: i === active ? "auto" : "none",
-            }}
-          >
-            <img
-              src={item.image}
-              alt={`Couverture IMPOSE ${item.number} : ${item.title}`}
-              className="h-full w-full object-cover"
-              loading={i === 0 ? "eager" : "lazy"}
-              fetchPriority={i === 0 ? "high" : "auto"}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+      {/* Radiant ambient backlight glow */}
+      <div className="pointer-events-none absolute -inset-6 sm:-inset-12 -z-10 rounded-full bg-gradient-to-tr from-ember/25 via-gold/20 to-transparent blur-3xl opacity-80" />
 
-            {/* Top badges */}
-            <div className="absolute inset-x-0 top-3 flex items-center justify-between px-3.5 z-10">
-              <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-md ${item.id === 31 ? "bg-ember text-white" : "bg-black/60 text-white"
-                }`}>
-                {item.id === 31 ? "Dernière parution" : "100% Digital"}
+      {/* Main Cover Stage (Clean Flat & Imposing Big Size) */}
+      <div className="relative w-full flex items-center justify-center py-2 sm:py-4">
+        {/* Central Active Cover — Big Size & Imposing Prestige Finish */}
+        <div
+          onClick={() => {
+            if (current && onSelect) onSelect(current);
+          }}
+          className="relative z-20 w-[84vw] max-w-[340px] xs:max-w-[380px] sm:max-w-[430px] md:max-w-[460px] lg:max-w-[490px] xl:max-w-[530px] rounded-xl overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:shadow-[0_25px_60px_-15px_rgba(245,158,11,0.25)] border border-white/20 ring-1 ring-gold/30 hover:ring-gold/60"
+          style={{ aspectRatio: "711 / 1084" }}
+          aria-label={`Édition ${current.number} : ${current.title} — Cliquer pour agrandir`}
+        >
+          {/* Current Cover Image */}
+          <img
+            key={current.id}
+            src={current.image}
+            alt={`Couverture IMPOSE ${current.number} : ${current.title}`}
+            className="w-full h-full object-cover transition-opacity duration-500"
+            loading="eager"
+            fetchPriority="high"
+          />
+
+          {/* Scrim gradient top and bottom for readability */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-black/60 z-20" />
+
+          {/* Top Bar Badges */}
+          <div className="absolute inset-x-0 top-3.5 sm:top-5 flex items-center justify-between px-4 sm:px-6 z-30">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-xl backdrop-blur-md border ${
+                active === 0
+                  ? "bg-ember text-white border-ember/50"
+                  : "bg-black/70 text-white border-white/20"
+              }`}
+            >
+              <span className={`size-1.5 rounded-full ${active === 0 ? "bg-white animate-ping" : "bg-gold"}`} />
+              {active === 0 ? "Dernière parution" : "100% Digital"}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/75 backdrop-blur-md border border-gold/40 px-3 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-gold shadow-xl">
+              {current.number}
+            </span>
+          </div>
+
+          {/* Hover zoom pill badge */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
+            <span className="inline-flex items-center gap-2 rounded-full bg-black/85 backdrop-blur-md border border-gold/50 px-4 py-2 text-xs font-semibold text-gold shadow-2xl">
+              <Eye className="size-4" /> Agrandir la couverture
+            </span>
+          </div>
+
+          {/* Bottom Editorial Plaque */}
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 pt-12 z-30 text-white">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-gold">
+                IMPOSE {current.number} · {current.date.toUpperCase()}
               </span>
-              <span className="rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[9px] font-bold text-white">
-                {item.number}
+              <span className="h-1 w-1 rounded-full bg-gold/60" />
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-semibold">
+                N°{active + 1} sur {total}
               </span>
             </div>
-
-            {/* Bottom info */}
-            <div className="absolute inset-x-0 bottom-0 p-5 z-10">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                IMPOSE {item.number} · {item.date}
-              </span>
-              <p className="mt-1 font-display text-xl leading-tight text-white line-clamp-2">
-                {item.title}
+            <h3 className="mt-1.5 font-display text-xl sm:text-2xl lg:text-[1.65rem] font-medium leading-tight text-white line-clamp-2">
+              {current.title}
+            </h3>
+            {current.person && current.person !== "Édition spéciale" && (
+              <p className="mt-1.5 text-xs sm:text-sm font-sans text-white/85 line-clamp-1">
+                {current.person}
               </p>
-              {item.person !== "Édition spéciale" && (
-                <p className="mt-1 text-xs text-white/80 line-clamp-1">{item.person}</p>
+            )}
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-gold/90 hover:text-white transition-colors">
+                <span>Détails & parution</span>
+                <ArrowUpRight className="size-3.5" />
+              </div>
+              {current.link && (
+                <a
+                  href={current.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 rounded-full bg-gold hover:bg-gold/90 text-gold-foreground px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md transition-all hover:scale-105"
+                >
+                  <ExternalLink className="size-3" /> Lire en ligne
+                </a>
               )}
             </div>
           </div>
-        ))}
+        </div>
 
-        {/* Carousel controls - hover reveal */}
-        <div className="absolute inset-y-0 left-2 z-20 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); prev(); }}
-            className="rounded-full bg-black/60 hover:bg-black/90 text-white p-2 backdrop-blur-md transition-all hover:scale-110 shadow-lg"
-            aria-label="Couverture précédente"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
-        </div>
-        <div className="absolute inset-y-0 right-2 z-20 flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); next(); }}
-            className="rounded-full bg-black/60 hover:bg-black/90 text-white p-2 backdrop-blur-md transition-all hover:scale-110 shadow-lg"
-            aria-label="Couverture suivante"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+        {/* Floating Chevrons Controls */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            prev();
+          }}
+          className="absolute left-1 xs:left-2 sm:left-4 lg:-left-4 xl:-left-6 top-1/2 -translate-y-1/2 z-30 size-11 sm:size-12 rounded-full bg-black/75 hover:bg-black text-white hover:text-gold border border-white/20 hover:border-gold/60 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group/btn"
+          aria-label="Édition précédente chronologique"
+        >
+          <ChevronLeft className="size-5 sm:size-6 transition-transform group-hover/btn:-translate-x-0.5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            next();
+          }}
+          className="absolute right-1 xs:right-2 sm:right-4 lg:-right-4 xl:-right-6 top-1/2 -translate-y-1/2 z-30 size-11 sm:size-12 rounded-full bg-black/75 hover:bg-black text-white hover:text-gold border border-white/20 hover:border-gold/60 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group/btn"
+          aria-label="Édition suivante chronologique"
+        >
+          <ChevronRight className="size-5 sm:size-6 transition-transform group-hover/btn:translate-x-0.5" />
+        </button>
       </div>
 
-      {/* Navigation Indicators & Loop Status */}
-      <div className="mt-4 flex items-center justify-between px-1">
-        <div className="flex gap-2 items-center">
-          {featured.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goTo(i)}
-              className={`transition-all duration-300 rounded-full ${i === active ? "bg-ember w-7 h-1.5" : "bg-foreground/20 hover:bg-foreground/40 w-1.5 h-1.5"
-                }`}
-              aria-label={`Édition ${i + 1}`}
-            />
-          ))}
+      {/* Chronological Timeline & Quick Navigation Bar Under the Stage */}
+      <div className="mt-5 w-full max-w-[530px] px-2 flex flex-col gap-2.5">
+        <div className="flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-2 text-foreground/80 font-bold uppercase tracking-wider text-[10px]">
+            <Clock className="size-3 text-ember" />
+            <span>Ordre chronologique</span>
+            <span className="text-muted-foreground font-normal">
+              ({sortedIssues[0]?.number} → {sortedIssues[sortedIssues.length - 1]?.number})
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+            {isPaused ? "Pause au survol" : "Défilement auto"} · {active + 1}/{total}
+          </span>
         </div>
-        <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
-          {isPaused ? "En pause" : "Boucle continue"} · {active + 1}/{featured.length}
-        </span>
+
+        {/* Quick jump chips for latest editions */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {quickPills.map((item, idx) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => goTo(idx)}
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase transition-all duration-300 ${
+                idx === active
+                  ? "bg-ember text-white shadow-md scale-105"
+                  : "bg-foreground/10 hover:bg-foreground/20 text-foreground/75"
+              }`}
+            >
+              {item.number}
+            </button>
+          ))}
+          <a
+            href="#editions"
+            className="shrink-0 text-[10px] font-bold uppercase text-ember hover:underline px-2 py-1"
+          >
+            Toutes ({total}) →
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -336,7 +424,15 @@ const stats = [
   { icon: Zap, value: "100%", label: "Média 100% Digital" },
 ];
 
-function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((issue: MagazineIssue) => void) | undefined; coverItems?: MagazineIssue[] | undefined; metricItems?: MetricItem[] | undefined }) {
+function Hero({
+  onSelectCover,
+  coverItems,
+  metricItems,
+}: {
+  onSelectCover?: ((issue: MagazineIssue) => void) | undefined;
+  coverItems?: MagazineIssue[] | undefined;
+  metricItems?: MetricItem[] | undefined;
+}) {
   const iconMap: Record<string, typeof Star> = {
     Star,
     Globe,
@@ -352,12 +448,13 @@ function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((is
     : stats;
 
   return (
-    <section id="accueil" className="hero-sunrise relative overflow-hidden">
+    <section id="accueil" className="hero-sunrise relative overflow-hidden pt-4 pb-12 lg:pt-8 lg:pb-16">
       {/* Background decorative elements */}
-      <div className="pointer-events-none absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gold/8 blur-3xl" />
-      <div className="pointer-events-none absolute -left-20 bottom-0 h-80 w-80 rounded-full bg-ember/8 blur-3xl" />
+      <div className="pointer-events-none absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-gold/15 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 bottom-0 h-96 w-96 rounded-full bg-ember/15 blur-3xl" />
+      <div className="pointer-events-none absolute right-[10%] top-1/2 -translate-y-1/2 h-[550px] w-[550px] rounded-full bg-gradient-to-tr from-ember/10 via-gold/10 to-transparent blur-3xl" />
 
-      <div className="mx-auto grid min-h-[calc(92vh-4.5rem)] max-w-7xl items-center gap-12 px-5 py-16 lg:grid-cols-[1.15fr_.85fr] lg:gap-16 lg:px-8 lg:py-20">
+      <div className="mx-auto grid min-h-[calc(94vh-4.5rem)] max-w-[1400px] items-center gap-10 px-5 sm:px-8 py-8 lg:grid-cols-[1fr_1.15fr] lg:gap-14 lg:px-10 xl:gap-20">
         {/* Left: Copy */}
         <div className="order-2 lg:order-1">
           <div className="reveal-one flex items-center gap-3">
@@ -366,7 +463,7 @@ function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((is
               Magazine 100% Digital · Imposez votre identité
             </span>
           </div>
-          <h1 className="reveal-two mt-6 max-w-4xl font-display text-5xl font-medium leading-[.94] sm:text-6xl lg:text-[5.5rem]">
+          <h1 className="reveal-two mt-6 max-w-2xl font-display text-5xl font-medium leading-[.94] sm:text-6xl lg:text-[5.25rem] xl:text-[5.75rem]">
             Les histoires qui façonnent{" "}
             <em className="italic text-ember">l'Afrique.</em>
           </h1>
@@ -378,10 +475,10 @@ function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((is
           </p>
           <div className="reveal-three mt-9 flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="editorial" size="xl" onClick={() => track("hero_cta_click", { target: "packages" })}>
-              <a href="#offres">Découvrir nos offres <ArrowDown /></a>
+              <a href="#offres">Découvrir les prestations <ArrowDown /></a>
             </Button>
             <Button asChild variant="editorialOutline" size="xl" onClick={() => track("hero_cta_click", { target: "contact" })}>
-              <a href="#contact">Être publié dans IMPOSE</a>
+              <a href="#contact">Demander un devis</a>
             </Button>
           </div>
 
@@ -399,9 +496,9 @@ function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((is
           </div>
         </div>
 
-        {/* Right: Carousel */}
-        <div className="order-1 mx-auto w-[70vw] max-w-[340px] lg:order-2 lg:w-full">
-          <HeroCoverCarousel onSelect={onSelectCover} items={coverItems} />
+        {/* Right: Imposing Cover Showcase */}
+        <div className="order-1 w-full lg:order-2 flex justify-center">
+          <HeroCoverShowcase onSelect={onSelectCover} items={coverItems} />
         </div>
       </div>
     </section>
@@ -410,7 +507,8 @@ function Hero({ onSelectCover, coverItems, metricItems }: { onSelectCover?: ((is
 
 function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIssue) => void; items?: MagazineIssue[] | undefined }) {
   const currentIssues = (items && items.length > 0) ? items : magazineIssues;
-  const duplicated = [...currentIssues, ...currentIssues];
+  const sorted = sortCoversChronological(currentIssues, "desc");
+  const duplicated = [...sorted, ...sorted];
   return (
     <div className="w-full border-y border-foreground/10 bg-card/60 py-5 overflow-hidden backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-5 mb-3 flex items-center justify-between">
@@ -420,7 +518,7 @@ function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIss
             <span className="relative inline-flex size-2 rounded-full bg-ember"></span>
           </span>
           <span className="text-[10px] font-bold uppercase tracking-widest text-ember">
-            Collection intégrale des couvertures IMPOSE ({currentIssues.length} parutions)
+            Collection intégrale en ordre chronologique ({sorted.length} parutions · {sorted[0]?.number} à {sorted[sorted.length - 1]?.number})
           </span>
         </div>
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider hidden sm:inline">
@@ -571,6 +669,7 @@ function AboutSection() {
 
 function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssue) => void) | undefined; items?: MagazineIssue[] | undefined }) {
   const currentIssues = (items && items.length > 0) ? items : magazineIssues;
+  const sortedIssues = sortCoversChronological(currentIssues, "desc");
   const [active, setActive] = useState<MagazineIssue | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -614,12 +713,12 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
               <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Collection IMPOSE</p>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-ember">
                 <span className="size-1.5 rounded-full bg-ember animate-pulse" />
-                {magazineIssues.length} Éditions
+                {sortedIssues.length} Éditions (N°{sortedIssues[0]?.number.replace(/\D/g, '')} → N°{sortedIssues[sortedIssues.length - 1]?.number.replace(/\D/g, '')})
               </span>
             </div>
             <h2 className="mt-4 font-display text-4xl sm:text-6xl">Nos éditions</h2>
             <p className="mt-4 max-w-2xl text-muted-foreground">
-              Découvrez les personnalités, entreprises et histoires qui ont marqué nos précédentes éditions.
+              Découvrez les personnalités, entreprises et histoires qui ont marqué nos éditions, classées par ordre chronologique.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -646,7 +745,7 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
           onTouchEnd={() => setIsPaused(false)}
           className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-6 [scrollbar-width:none]"
         >
-          {currentIssues.map((item) => (
+          {sortedIssues.map((item) => (
             <article
               key={item.id}
               className="group w-[72vw] max-w-[260px] shrink-0 snap-start cursor-pointer"
@@ -672,6 +771,11 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
                   {item.featured && item.id !== 31 && (
                     <span className="rounded-sm bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
                       En vedette
+                    </span>
+                  )}
+                  {item.link && (
+                    <span className="rounded-sm bg-black/70 backdrop-blur-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gold border border-gold/30 flex items-center gap-1">
+                      <ExternalLink className="size-2.5" /> En ligne
                     </span>
                   )}
                 </div>
@@ -720,6 +824,15 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
               <p className="mt-2 font-display text-xl leading-snug">{active.title}</p>
               {active.person !== "Édition spéciale" && <p className="mt-1 text-sm text-white/75">{active.person}</p>}
               {active.description && <p className="mt-2 text-xs text-white/60 leading-relaxed">{active.description}</p>}
+              {active.link && (
+                <div className="mt-4">
+                  <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
+                    <a href={active.link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-3.5" /> Lire le numéro en ligne
+                    </a>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -756,81 +869,312 @@ function BenefitsSection() {
   );
 }
 
-function PackagesSection({ onSelect }: { onSelect: (pkg: PackageOption) => void }) {
+function PackagesSection({
+  onSelectPackage,
+  onSelectPrestations,
+  selectedPrestations = [],
+}: {
+  onSelectPackage: (pkg: PackageOption) => void;
+  onSelectPrestations: (prestations: string[]) => void;
+  selectedPrestations?: string[];
+}) {
+  const [activeTab, setActiveTab] = useState<"formulas" | "alacarte">("formulas");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [selectedServices, setSelectedServices] = useState<string[]>(() => selectedPrestations);
   const [compare, setCompare] = useState(false);
+
   useEffect(() => {
-    const node = document.getElementById("offres");
-    if (!node) return;
-    const observer = new IntersectionObserver((entries) => { if (entries[0]?.isIntersecting) track("package_view"); }, { threshold: .3 });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
+    if (selectedPrestations.length > 0) {
+      setSelectedServices(selectedPrestations);
+    }
+  }, [selectedPrestations]);
+
+  const toggleService = (name: string) => {
+    const updated = selectedServices.includes(name)
+      ? selectedServices.filter((s) => s !== name)
+      : [...selectedServices, name];
+    setSelectedServices(updated);
+  };
+
+  const categories = [
+    { id: "all", label: `Toutes (${availablePrestations.length})` },
+    { id: "editorial", label: "Rédaction & Journalisme" },
+    { id: "visual", label: "Création Visuelle" },
+    { id: "diffusion", label: "Diffusion & Notoriété" },
+    { id: "strategy", label: "Stratégie & Partenariat" },
+  ];
+
+  const filteredPrestations = activeCategory === "all"
+    ? availablePrestations
+    : availablePrestations.filter((p) => p.category === activeCategory);
+
+  const handleApplyPrestations = () => {
+    if (selectedServices.length === 0) {
+      toast.info("Veuillez cocher au moins une prestation pour votre devis.");
+      return;
+    }
+    onSelectPrestations(selectedServices);
+    track("custom_prestations_select", { count: selectedServices.length, items: selectedServices.join(", ") });
+    window.setTimeout(() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }), 60);
+  };
 
   return (
-    <section id="offres" className="bg-background py-20 lg:py-28">
+    <section id="offres" className="bg-background py-20 lg:py-28 border-t border-foreground/10">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <div className="text-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Nos packages</p>
-          <h2 className="mt-4 font-display text-4xl sm:text-6xl">Choisissez votre niveau de visibilité</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-muted-foreground">
-            Des solutions adaptées aux entrepreneurs, entreprises, institutions et marques qui souhaitent renforcer leur visibilité.
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ember">
+            Prestations & Devis sur-mesure
+          </p>
+          <h2 className="mt-4 font-display text-4xl sm:text-6xl font-medium tracking-tight">
+            Composez votre visibilité dans IMPOSE
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground leading-relaxed">
+            Sélectionnez une formule clé en main ou cochez librement vos prestations à la carte. Recevez sous 24h une proposition personnalisée et chiffrée selon vos ambitions.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-          {packages.map((pkg) => (
-            <article key={pkg.id} className={`relative flex flex-col border p-6 transition-transform duration-300 hover:-translate-y-1 ${pkg.featured ? "border-gold bg-primary text-primary-foreground shadow-gold" : "border-foreground/15 bg-card hover:border-gold/40"}`}>
-              {pkg.badge && (
-                <span className="absolute right-4 top-0 -translate-y-1/2 bg-gold px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-gold-foreground">
-                  {pkg.badge}
+        {/* View Switcher Tabs */}
+        <div className="mt-10 flex justify-center">
+          <div className="inline-flex rounded-full bg-card border border-foreground/15 p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab("formulas")}
+              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                activeTab === "formulas"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Formules recommandées
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("alacarte")}
+              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 ${
+                activeTab === "alacarte"
+                  ? "bg-gold text-gold-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <SlidersHorizontal className="size-3.5" />
+              Prestations à la carte
+              {selectedServices.length > 0 && (
+                <span className="ml-1 rounded-full bg-black/20 px-1.5 py-0.2 text-[10px] font-extrabold">
+                  {selectedServices.length}
                 </span>
               )}
-              <h3 className="text-xs font-bold uppercase tracking-widest">{pkg.name}</h3>
-              <p className={`mt-6 font-display text-3xl ${pkg.featured ? "text-gold" : ""}`}>{pkg.priceFcfa}</p>
-              <p className={`mt-1 text-xs ${pkg.featured ? "text-primary-foreground/55" : "text-muted-foreground"}`}>{pkg.priceEur}</p>
-              <p className={`mt-5 min-h-20 text-sm leading-6 ${pkg.featured ? "text-primary-foreground/65" : "text-muted-foreground"}`}>{pkg.description}</p>
-              <ul className="mt-6 flex-1 space-y-3">
-                {pkg.features.map(f => (
-                  <li key={f} className="flex gap-2 text-xs leading-5">
-                    <Check className="mt-0.5 size-3.5 shrink-0 text-gold" />{f}
-                  </li>
-                ))}
-              </ul>
-              <Button className="mt-7 w-full" variant={pkg.featured ? "gold" : "editorialOutline"} onClick={() => onSelect(pkg)}>
-                {pkg.id === "annual" ? "Demander une proposition" : "Choisir ce pack"}
+            </button>
+          </div>
+        </div>
+
+        {/* TAB 1: FORMULES RECOMMANDEES (SANS PRIX FIXES) */}
+        {activeTab === "formulas" && (
+          <div className="mt-12">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+              {packages.map((pkg) => (
+                <article
+                  key={pkg.id}
+                  className={`relative flex flex-col border p-6 transition-all duration-300 hover:-translate-y-1.5 rounded-sm ${
+                    pkg.featured
+                      ? "border-gold bg-primary text-primary-foreground shadow-gold"
+                      : "border-foreground/15 bg-card hover:border-gold/50 shadow-sm"
+                  }`}
+                >
+                  {pkg.badge && (
+                    <span className="absolute right-4 top-0 -translate-y-1/2 bg-gold px-3 py-1 text-[9px] font-extrabold uppercase tracking-wider text-gold-foreground shadow-md">
+                      {pkg.badge}
+                    </span>
+                  )}
+                  <h3 className="text-xs font-bold uppercase tracking-widest">{pkg.name}</h3>
+
+                  {/* Devis Indicator */}
+                  <div className="mt-5 mb-1 flex flex-col gap-1">
+                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold border border-gold/30">
+                      <Sparkles className="size-3" /> Sur devis personnalisé
+                    </span>
+                    <span
+                      className={`text-[11px] font-medium ${
+                        pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
+                      }`}
+                    >
+                      {pkg.tagline}
+                    </span>
+                  </div>
+
+                  <p
+                    className={`mt-4 min-h-16 text-xs sm:text-sm leading-relaxed ${
+                      pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
+                    }`}
+                  >
+                    {pkg.description}
+                  </p>
+
+                  <div className="my-5 h-px bg-foreground/10" />
+
+                  <ul className="flex-1 space-y-3">
+                    {pkg.features.map((f) => (
+                      <li key={f} className="flex gap-2 text-xs leading-5">
+                        <Check className="mt-0.5 size-3.5 shrink-0 text-gold" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className="mt-7 w-full shadow-sm"
+                    variant={pkg.featured ? "gold" : "editorialOutline"}
+                    onClick={() => onSelectPackage(pkg)}
+                  >
+                    Demander un devis
+                  </Button>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-10 text-center">
+              <Button variant="link" onClick={() => setCompare(!compare)}>
+                Comparer le détail des formules{" "}
+                <ChevronRight className={`transition-transform duration-300 ${compare ? "rotate-90" : ""}`} />
               </Button>
-            </article>
-          ))}
-        </div>
+            </div>
 
-        <div className="mt-8 text-center">
-          <Button variant="link" onClick={() => setCompare(!compare)}>
-            Comparer les offres <ChevronRight className={`transition-transform duration-300 ${compare ? "rotate-90" : ""}`} />
-          </Button>
-        </div>
+            {compare && (
+              <div className="mt-7 overflow-x-auto border border-foreground/15 bg-card rounded-sm shadow-sm">
+                <table className="w-full min-w-[760px] text-left text-sm">
+                  <thead>
+                    <tr className="bg-primary text-primary-foreground">
+                      <th className="p-4 font-semibold">Formule</th>
+                      <th className="p-4 font-semibold">Tarification</th>
+                      <th className="p-4 font-semibold">Prestation clé</th>
+                      <th className="p-4 font-semibold">Diffusion & Notoriété</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packages.map((p) => (
+                      <tr key={p.id} className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
+                        <td className="p-4 font-semibold text-foreground">
+                          {p.name}
+                          <br />
+                          <span className="text-xs font-normal text-muted-foreground">{p.tagline}</span>
+                        </td>
+                        <td className="p-4">
+                          <span className="inline-flex items-center gap-1 text-gold font-bold text-xs uppercase">
+                            <Sparkles className="size-3" /> Sur devis (24h)
+                          </span>
+                        </td>
+                        <td className="p-4 text-xs text-muted-foreground">{p.features[0]}</td>
+                        <td className="p-4 text-xs text-muted-foreground">{p.features[p.features.length - 2] || p.features[p.features.length - 1]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
-        {compare && (
-          <div className="mt-7 overflow-x-auto border border-foreground/15 bg-card">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="bg-primary text-primary-foreground">
-                  <th className="p-4 font-semibold">Offre</th>
-                  <th className="p-4 font-semibold">Tarif</th>
-                  <th className="p-4 font-semibold">Production</th>
-                  <th className="p-4 font-semibold">Diffusion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {packages.map(p => (
-                  <tr key={p.id} className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
-                    <td className="p-4 font-semibold">{p.name}</td>
-                    <td className="p-4">{p.priceFcfa}<br /><span className="text-muted-foreground">{p.priceEur}</span></td>
-                    <td className="p-4">{p.features[0]}</td>
-                    <td className="p-4">{p.features[p.features.length - 1]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* TAB 2: CONFIGURATEUR A LA CARTE */}
+        {activeTab === "alacarte" && (
+          <div className="mt-10">
+            {/* Category filter pills */}
+            <div className="flex flex-wrap gap-2 justify-center mb-8">
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setActiveCategory(c.id)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                    activeCategory === c.id
+                      ? "bg-ember text-white shadow-sm"
+                      : "bg-card border border-foreground/15 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Grid of Prestations */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredPrestations.map((p) => {
+                const isSelected = selectedServices.includes(p.name);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => toggleService(p.name)}
+                    className={`relative p-5 rounded-sm border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
+                      isSelected
+                        ? "border-gold bg-gold/5 shadow-md ring-1 ring-gold/40"
+                        : "border-foreground/15 bg-card hover:border-gold/40 hover:bg-muted/20"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {p.categoryLabel}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {p.badge && (
+                            <span className="rounded-full bg-gold/15 text-gold border border-gold/30 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide">
+                              {p.badge}
+                            </span>
+                          )}
+                          <div
+                            className={`size-5 rounded-full flex items-center justify-center transition-colors ${
+                              isSelected ? "bg-gold text-gold-foreground" : "border border-foreground/30"
+                            }`}
+                          >
+                            {isSelected && <Check className="size-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      <h4 className="font-display text-lg font-medium text-foreground leading-snug">
+                        {p.name}
+                      </h4>
+                      <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                        {p.description}
+                      </p>
+                    </div>
+
+                    {p.recommendedFor && (
+                      <div className="mt-4 pt-3 border-t border-foreground/10 flex items-center justify-between text-[11px]">
+                        <span className="text-muted-foreground font-medium">Idéal pour :</span>
+                        <span className="font-semibold text-foreground/80">{p.recommendedFor}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Action Bar for Selected Prestations */}
+            <div className="mt-8 border border-gold/40 bg-card/90 backdrop-blur-md p-5 rounded-sm shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gold flex items-center gap-1.5">
+                  <CheckCircle2 className="size-4" />
+                  {selectedServices.length === 0
+                    ? "Aucune prestation sélectionnée pour l'instant"
+                    : `${selectedServices.length} prestation(s) sélectionnée(s) pour votre devis`}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {selectedServices.length === 0
+                    ? "Cochez une ou plusieurs prestations ci-dessus pour composer votre demande de devis."
+                    : selectedServices.join(" · ")}
+                </p>
+              </div>
+
+              <Button
+                variant="gold"
+                size="lg"
+                disabled={selectedServices.length === 0}
+                onClick={handleApplyPrestations}
+                className="shrink-0 w-full sm:w-auto"
+              >
+                Recevoir mon devis ({selectedServices.length}) →
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -897,9 +1241,21 @@ function ProcessSection() {
   );
 }
 
-type ContactFormProps = { selected: PackageOption | null };
+type ContactFormProps = {
+  selected: PackageOption | null;
+  selectedPrestations: string[];
+  onRemovePrestation: (name: string) => void;
+  onClearPrestations: () => void;
+  onClearPackage: () => void;
+};
 
-function ContactForm({ selected }: ContactFormProps) {
+function ContactForm({
+  selected,
+  selectedPrestations,
+  onRemovePrestation,
+  onClearPrestations,
+  onClearPackage,
+}: ContactFormProps) {
   const [started, setStarted] = useState(false);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -920,9 +1276,20 @@ function ContactForm({ selected }: ContactFormProps) {
     const country = String(form.get("country") || "").trim();
     const sector = String(form.get("sector") || "").trim();
     const objective = String(form.get("objective") || "").trim();
-    const selectedPackage = String(form.get("selectedPackage") || "").trim();
+    const formPackageChoice = String(form.get("selectedPackage") || "").trim();
     const message = String(form.get("message") || "").trim();
     const createdAt = new Date().toISOString();
+
+    // Construction synthétique du besoin pour les outils de reporting (Supabase & Google Sheets)
+    let finalPackageScope = formPackageChoice;
+    if (selectedPrestations.length > 0) {
+      finalPackageScope = `Prestations à la carte (${selectedPrestations.length}) : ${selectedPrestations.join(", ")}`;
+      if (selected) {
+        finalPackageScope = `Formule ${selected.name} + Prestations : ${selectedPrestations.join(", ")}`;
+      }
+    } else if (selected && !formPackageChoice.includes(selected.name)) {
+      finalPackageScope = `Formule ${selected.name} (Sur devis)`;
+    }
 
     const lead: LeadData = {
       firstName,
@@ -934,13 +1301,17 @@ function ContactForm({ selected }: ContactFormProps) {
       country,
       sector,
       objective,
-      selectedPackage,
+      selectedPackage: finalPackageScope,
       message,
       source: "Landing Page IMPOSE 100% Digital",
       createdAt,
     };
 
-    track("contact_form_submit", { package: lead.selectedPackage });
+    track("contact_form_submit", {
+      package: lead.selectedPackage,
+      hasPrestations: selectedPrestations.length > 0,
+      prestationsCount: selectedPrestations.length,
+    });
 
     try {
       // 1. Insertion directe dans Supabase (table public.leads)
@@ -957,7 +1328,7 @@ function ContactForm({ selected }: ContactFormProps) {
             country,
             sector,
             objective,
-            selected_package: selectedPackage,
+            selected_package: finalPackageScope,
             message,
             source: "Landing Page IMPOSE 100% Digital",
             status: "NEW",
@@ -974,14 +1345,14 @@ function ContactForm({ selected }: ContactFormProps) {
       // 2. Transmission vers Google Sheets et sauvegarde locale normalisée
       const result = await sendLeadToGoogleSheets(lead);
       if (result.success) {
-        toast.success("Demande transmise avec succès ! Notre équipe reviendra vers vous.");
+        toast.success("Demande de devis transmise avec succès ! Notre équipe revient vers vous sous 24h.");
       } else {
-        toast.success("Votre demande a bien été enregistrée.");
+        toast.success("Votre demande de devis a bien été enregistrée.");
       }
       setSent(true);
     } catch (err) {
       console.error("Erreur capture lead:", err);
-      toast.success("Votre demande a bien été enregistrée.");
+      toast.success("Votre demande de devis a bien été enregistrée.");
       setSent(true);
     } finally {
       setLoading(false);
@@ -993,13 +1364,13 @@ function ContactForm({ selected }: ContactFormProps) {
       <span className="mx-auto grid size-14 place-items-center rounded-full bg-gold text-gold-foreground shadow-gold">
         <Check className="size-7" />
       </span>
-      <h3 className="mt-6 font-display text-3xl sm:text-4xl text-foreground">Demande transmise avec succès.</h3>
+      <h3 className="mt-6 font-display text-3xl sm:text-4xl text-foreground">Demande de devis reçue avec succès.</h3>
       <p className="mt-3 max-w-md mx-auto text-sm sm:text-base text-muted-foreground leading-relaxed">
-        Votre projet a bien été enregistré. L'équipe éditoriale et commerciale d'IMPOSE Magazine prendra contact avec vous dans les meilleurs délais.
+        Votre sélection a bien été enregistrée. L'équipe éditoriale et commerciale d'IMPOSE étudie votre projet et vous transmettra un devis chiffré et personnalisé sous 24h ouvrées.
       </p>
       <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
         <Button variant="editorial" size="sm" onClick={() => setSent(false)}>
-          Envoyer une autre demande
+          Faire une autre demande de devis
         </Button>
         <Button asChild variant="editorialOutline" size="sm">
           <a href="#editions">Parcourir les éditions</a>
@@ -1010,67 +1381,208 @@ function ContactForm({ selected }: ContactFormProps) {
 
   const field = "w-full border border-input bg-card px-4 py-3.5 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-gold focus:ring-2 focus:ring-gold/20 rounded-sm disabled:opacity-60 disabled:cursor-not-allowed";
 
+  const defaultPackageValue = selectedPrestations.length > 0
+    ? `Prestations à la carte (${selectedPrestations.length} sélectionnée${selectedPrestations.length > 1 ? "s" : ""})`
+    : selected
+    ? `Formule ${selected.name} (Sur devis)`
+    : "";
+
   return (
     <form
       onSubmit={submit}
       onFocus={() => { if (!started) { setStarted(true); track("contact_form_start"); } }}
       className="grid gap-4 md:grid-cols-2"
     >
+      {/* Recapitulatif visuel si prestations à la carte sélectionnées */}
+      {selectedPrestations.length > 0 && (
+        <div className="md:col-span-2 rounded-sm border border-gold/50 bg-gold/5 p-4 shadow-sm animate-in fade-in duration-300">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-gold flex items-center gap-1.5">
+              <Sparkles className="size-3.5" />
+              Prestations choisies pour votre devis ({selectedPrestations.length})
+            </span>
+            <div className="flex items-center gap-3">
+              <a
+                href="#offres"
+                className="text-[11px] font-semibold text-muted-foreground hover:text-gold transition-colors underline"
+              >
+                + Ajouter d'autres
+              </a>
+              <button
+                type="button"
+                onClick={onClearPrestations}
+                className="text-[11px] font-semibold text-muted-foreground/75 hover:text-destructive transition-colors"
+              >
+                Effacer tout
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedPrestations.map((p) => (
+              <span
+                key={p}
+                className="inline-flex items-center gap-1.5 rounded-full bg-card border border-gold/30 px-3 py-1 text-xs font-semibold text-foreground shadow-xs"
+              >
+                {p}
+                <button
+                  type="button"
+                  onClick={() => onRemovePrestation(p)}
+                  className="size-3.5 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors ml-0.5"
+                  aria-label={`Supprimer ${p}`}
+                  title="Retirer"
+                >
+                  <X className="size-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recapitulatif si formule choisie sans prestations carte */}
+      {selected && selectedPrestations.length === 0 && (
+        <div className="md:col-span-2 rounded-sm border border-gold/40 bg-card p-4 shadow-sm flex items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gold flex items-center gap-1">
+              <CheckCircle2 className="size-3" /> Formule choisie (Sur devis personnalisé)
+            </span>
+            <p className="mt-0.5 font-display text-lg text-foreground font-semibold">
+              Formule {selected.name}
+            </p>
+            <p className="text-xs text-muted-foreground">{selected.tagline}</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <a href="#offres" className="text-xs text-muted-foreground hover:text-gold transition-colors underline">
+              Changer
+            </a>
+            <button
+              type="button"
+              onClick={onClearPackage}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
+              Retirer
+            </button>
+          </div>
+        </div>
+      )}
+
       <input className={field} name="firstName" placeholder="Prénom *" required disabled={loading} />
       <input className={field} name="lastName" placeholder="Nom *" required disabled={loading} />
       <input className={field} name="company" placeholder="Entreprise / Organisation *" required disabled={loading} />
       <input className={field} name="position" placeholder="Fonction" disabled={loading} />
       <input className={field} name="email" type="email" placeholder="Email professionnel *" required disabled={loading} />
       <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required disabled={loading} />
-      <input className={field} name="country" placeholder="Pays *" required disabled={loading} />
+      <input className={field} name="country" placeholder="Pays (ex: Côte d'Ivoire, Sénégal, France...) *" required disabled={loading} />
       <input className={field} name="sector" placeholder="Secteur d'activité *" required disabled={loading} />
+      
       <select className={field} name="objective" defaultValue="" required disabled={loading}>
-        <option value="" disabled>Votre objectif</option>
-        {objectives.map(o => <option key={o}>{o}</option>)}
+        <option value="" disabled>Votre objectif prioritaire *</option>
+        {objectives.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <select key={selected?.id ?? "none"} className={field} name="selectedPackage" defaultValue={selected ? `${selected.name} — ${selected.priceFcfa} (${selected.priceEur})` : ""} disabled={loading}>
-        <option value="">Je ne sais pas encore</option>
-        {packages.map(p => <option key={p.id}>{p.name} — {p.priceFcfa} ({p.priceEur})</option>)}
+
+      <select
+        key={`${selected?.id ?? "none"}-${selectedPrestations.length}`}
+        className={field}
+        name="selectedPackage"
+        defaultValue={defaultPackageValue}
+        disabled={loading}
+      >
+        <option value="">Formule ou prestations souhaitées</option>
+        {selectedPrestations.length > 0 && (
+          <option value={`Prestations à la carte (${selectedPrestations.length} sélectionnée${selectedPrestations.length > 1 ? "s" : ""})`}>
+            ✓ Prestations à la carte ({selectedPrestations.length} choisie{selectedPrestations.length > 1 ? "s" : ""})
+          </option>
+        )}
+        <option value="Prestations à la carte (Sur mesure)">Prestations à la carte (Sur-mesure)</option>
+        {packages.map(p => (
+          <option key={p.id} value={`Formule ${p.name} (Sur devis)`}>
+            Formule {p.name} (Sur devis)
+          </option>
+        ))}
+        <option value="Conseil éditorial & Stratégie d'influence">Conseil éditorial & Stratégie d'influence</option>
+        <option value="Partenariat institutionnel ou grand compte">Partenariat institutionnel ou grand compte</option>
       </select>
-      <textarea className={`${field} min-h-36 resize-y md:col-span-2`} name="message" placeholder="Parlez-nous de votre projet ou de votre besoin…" required disabled={loading} />
+
+      <textarea
+        className={`${field} min-h-32 resize-y md:col-span-2`}
+        name="message"
+        placeholder="Décrivez brièvement vos attentes ou le contexte de votre projet (timing souhaité, message clé, audience cible...)…"
+        required
+        disabled={loading}
+      />
+
       <label className="flex items-start gap-3 text-xs leading-5 text-muted-foreground md:col-span-2">
         <input type="checkbox" required className="mt-0.5 size-4 accent-[var(--gold)]" disabled={loading} />
-        J'accepte d'être recontacté par l'équipe IMPOSE concernant ma demande.
+        J'accepte d'être recontacté par l'équipe IMPOSE pour recevoir ma proposition et mon devis personnalisé.
       </label>
+
       {error && (
         <div className="md:col-span-2 rounded bg-destructive/10 p-3 text-xs text-destructive">
           {error}
         </div>
       )}
-      <div className="md:col-span-2">
+
+      <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
         <Button type="submit" variant="editorial" size="xl" disabled={loading} className="w-full sm:w-auto">
           {loading ? (
             <>
               <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent inline-block mr-2" />
-              Transmission en cours...
+              Génération du devis en cours...
             </>
           ) : (
             <>
-              Envoyer ma demande <ArrowRight />
+              Recevoir mon devis gratuit sous 24h <ArrowRight />
             </>
           )}
         </Button>
+
+        <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-foreground/80 font-medium">
+            <Check className="size-3.5 text-gold shrink-0" /> Devis gratuit & sans aucun engagement
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Check className="size-3.5 text-gold shrink-0" /> Réponse personnalisée sous 24h ouvrées
+          </span>
+        </div>
       </div>
     </form>
   );
 }
 
-function ContactSection({ selected }: ContactFormProps) {
+function ContactSection({
+  selected,
+  selectedPrestations,
+  onRemovePrestation,
+  onClearPrestations,
+  onClearPackage,
+}: ContactFormProps) {
   return (
-    <section id="contact" className="hero-sunrise py-20 lg:py-28">
+    <section id="contact" className="hero-sunrise py-20 lg:py-28 border-t border-foreground/10">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-[.75fr_1.25fr] lg:px-8">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Demande de proposition</p>
-          <h2 className="mt-4 font-display text-5xl sm:text-6xl">Parlons de votre visibilité.</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Demande de devis</p>
+          <h2 className="mt-4 font-display text-5xl sm:text-6xl">Recevez votre devis personnalisé.</h2>
           <p className="mt-6 text-base leading-7 text-muted-foreground">
-            Présentez-nous votre projet et notre équipe vous contactera pour vous proposer la solution IMPOSE la plus adaptée à vos objectifs.
+            Sélectionnez vos prestations ou indiquez votre besoin. Notre équipe éditoriale et commerciale étudie votre dossier et vous transmet une offre chiffrée sous 24 heures.
           </p>
-          <div className="mt-9 editorial-rule pt-6 space-y-3 text-sm">
+
+          <div className="mt-8 space-y-3 rounded-sm border border-foreground/10 bg-card/60 p-4 text-xs text-muted-foreground backdrop-blur-sm">
+            <p className="font-bold uppercase tracking-wide text-foreground text-[10px]">Notre engagement</p>
+            <div className="flex items-start gap-2">
+              <Check className="size-4 text-gold shrink-0 mt-0.5" />
+              <span>Devis 100% sur-mesure adapté à votre secteur et vos objectifs</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Check className="size-4 text-gold shrink-0 mt-0.5" />
+              <span>Accompagnement par des journalistes et directeurs artistiques expérimentés</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Check className="size-4 text-gold shrink-0 mt-0.5" />
+              <span>Diffusion ciblée auprès de +50 000 décideurs et leaders panafricains</span>
+            </div>
+          </div>
+
+          <div className="mt-8 editorial-rule pt-6 space-y-3 text-sm">
             <a href="tel:+2250757528302" className="flex items-center gap-3 py-2 hover:text-ember transition-colors" onClick={() => track("phone_click")}>
               <Phone className="size-4 text-ember" />+225 07 57 52 83 02
             </a>
@@ -1080,15 +1592,22 @@ function ContactSection({ selected }: ContactFormProps) {
           </div>
 
           {/* Mini cover strip */}
-          <div className="mt-10 hidden lg:flex gap-3 overflow-hidden">
+          <div className="mt-8 hidden lg:flex gap-3 overflow-hidden">
             {magazineIssues.slice(0, 4).map(item => (
-              <div key={item.id} className="w-16 shrink-0 overflow-hidden rounded-sm shadow-md opacity-70 hover:opacity-100 transition-opacity" style={{ aspectRatio: "711 / 1084" }}>
+              <div key={item.id} className="w-16 shrink-0 overflow-hidden rounded-sm shadow-md opacity-75 hover:opacity-100 transition-opacity" style={{ aspectRatio: "711 / 1084" }}>
                 <img src={item.image} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
               </div>
             ))}
           </div>
         </div>
-        <ContactForm selected={selected} />
+
+        <ContactForm
+          selected={selected}
+          selectedPrestations={selectedPrestations}
+          onRemovePrestation={onRemovePrestation}
+          onClearPrestations={onClearPrestations}
+          onClearPackage={onClearPackage}
+        />
       </div>
     </section>
   );
@@ -1120,10 +1639,10 @@ function Footer() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gold">Professionnels</p>
             <div className="mt-5 space-y-3 text-sm text-primary-foreground/60">
-              <a className="block hover:text-primary-foreground transition-colors" href="#offres">Nos offres</a>
-              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Être publié</a>
-              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Publicité</a>
-              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Partenariat</a>
+              <a className="block hover:text-primary-foreground transition-colors" href="#offres">Prestations & Devis</a>
+              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Demander un devis</a>
+              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Publicité & Sponsoring</a>
+              <a className="block hover:text-primary-foreground transition-colors" href="#contact">Partenariat média</a>
             </div>
           </div>
           <div>
@@ -1152,27 +1671,53 @@ function Footer() {
 
 function Index() {
   const { covers, partners, metrics } = useDynamicData();
+  const sortedCovers = sortCoversChronological(covers, "desc");
   const [selected, setSelected] = useState<PackageOption | null>(null);
+  const [selectedPrestations, setSelectedPrestations] = useState<string[]>([]);
   const [modalCover, setModalCover] = useState<MagazineIssue | null>(null);
-  const choose = (pkg: PackageOption) => {
+
+  const choosePackage = (pkg: PackageOption) => {
     setSelected(pkg);
-    track("package_select", { package: pkg.name, price: pkg.priceFcfa });
+    track("package_select", { package: pkg.name });
     window.setTimeout(() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }), 50);
   };
+
+  const choosePrestations = (prestations: string[]) => {
+    setSelectedPrestations(prestations);
+    track("prestations_select", { count: prestations.length, list: prestations.join(", ") });
+    window.setTimeout(() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }), 50);
+  };
+
+  const handleTogglePrestation = (name: string) => {
+    setSelectedPrestations((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+    );
+  };
+
   return (
     <>
       <Header />
       <main>
-        <Hero onSelectCover={setModalCover} coverItems={covers} metricItems={metrics} />
-        <CoverMarqueeTicker onSelect={setModalCover} items={covers} />
+        <Hero onSelectCover={setModalCover} coverItems={sortedCovers} metricItems={metrics} />
+        <CoverMarqueeTicker onSelect={setModalCover} items={sortedCovers} />
         <AboutSection />
-        <MagazineGallery onSelect={setModalCover} items={covers} />
+        <MagazineGallery onSelect={setModalCover} items={sortedCovers} />
         <BenefitsSection />
-        <PackagesSection onSelect={choose} />
+        <PackagesSection
+          onSelectPackage={choosePackage}
+          onSelectPrestations={choosePrestations}
+          selectedPrestations={selectedPrestations}
+        />
         <AudienceSection />
         <PartnersSection items={partners} />
         <ProcessSection />
-        <ContactSection selected={selected} />
+        <ContactSection
+          selected={selected}
+          selectedPrestations={selectedPrestations}
+          onRemovePrestation={handleTogglePrestation}
+          onClearPrestations={() => setSelectedPrestations([])}
+          onClearPackage={() => setSelected(null)}
+        />
       </main>
       <Footer />
       {modalCover && (
@@ -1206,6 +1751,15 @@ function Index() {
               <p className="mt-2 font-display text-xl leading-snug">{modalCover.title}</p>
               {modalCover.person !== "Édition spéciale" && <p className="mt-1 text-sm text-white/75">{modalCover.person}</p>}
               {modalCover.description && <p className="mt-2 text-xs text-white/60 leading-relaxed max-w-md mx-auto">{modalCover.description}</p>}
+              {modalCover.link && (
+                <div className="mt-4">
+                  <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
+                    <a href={modalCover.link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-3.5" /> Lire le numéro en ligne
+                    </a>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -35,6 +35,7 @@ export interface DbCover {
   description?: string;
   featured: boolean;
   order_index?: number;
+  link_url?: string;
   created_at?: string;
 }
 

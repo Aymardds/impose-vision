@@ -93,6 +93,7 @@ function AdminPage() {
     image: "",
     description: "",
     featured: true,
+    link: "",
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [coverSearch, setCoverSearch] = useState("");
@@ -162,6 +163,7 @@ function AdminPage() {
         image: c.image,
         description: c.description || "",
         featured: c.featured ?? true,
+        link: c.link || "",
       });
     } else {
       setEditingCover(null);
@@ -173,6 +175,7 @@ function AdminPage() {
         image: "",
         description: "",
         featured: true,
+        link: "",
       });
     }
     setCoverModalOpen(true);
@@ -499,6 +502,19 @@ function AdminPage() {
                     <img src={c.image} alt={c.title} className="h-full w-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end gap-2">
                       <div className="flex items-center gap-1.5 justify-center">
+                        {c.link && (
+                          <Button
+                            asChild
+                            variant="secondary"
+                            size="icon"
+                            className="size-8 rounded-full shadow"
+                            title="Ouvrir le lien du numéro"
+                          >
+                            <a href={c.link} target="_blank" rel="noreferrer">
+                              <ExternalLink className="size-3.5" />
+                            </a>
+                          </Button>
+                        )}
                         <Button
                           variant="secondary"
                           size="icon"
@@ -541,9 +557,30 @@ function AdminPage() {
 
                   <div className="p-2.5 text-xs flex-1 flex flex-col justify-between">
                     <div>
-                      <span className="font-bold text-gold">{c.number}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gold">{c.number}</span>
+                        {c.link && (
+                          <a
+                            href={c.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-gold hover:text-gold/80 transition-colors"
+                            title="Lien du numéro configuré"
+                          >
+                            <ExternalLink className="size-3" />
+                          </a>
+                        )}
+                      </div>
                       <p className="font-semibold text-foreground line-clamp-1 mt-0.5">{c.person}</p>
                       <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5 leading-snug">{c.title}</p>
+                      {c.link ? (
+                        <p className="mt-1 flex items-center gap-1 text-[9px] text-gold/90 truncate">
+                          <span className="size-1.5 rounded-full bg-gold shrink-0" />
+                          <span className="truncate">{c.link.replace(/^https?:\/\//, '')}</span>
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[9px] text-muted-foreground/40 italic">Aucun lien défini</p>
+                      )}
                     </div>
                     <span className="mt-2 text-[9px] text-muted-foreground/60">{c.date}</span>
                   </div>
@@ -959,6 +996,34 @@ function AdminPage() {
                     <img src={coverForm.image} alt="Prévisualisation" className="h-full w-full object-cover" />
                   </div>
                 )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-muted-foreground">
+                    Lien du numéro / Édition digitale (URL)
+                  </label>
+                  {coverForm.link && (
+                    <a
+                      href={coverForm.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-gold hover:underline inline-flex items-center gap-1"
+                    >
+                      <ExternalLink className="size-3" /> Tester le lien
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="url"
+                  value={coverForm.link}
+                  onChange={(e) => setCoverForm({ ...coverForm, link: e.target.value })}
+                  placeholder="https://... (ex: lien Calaméo, Issuu, PDF, Flipbook ou article dédié)"
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Permet aux lecteurs de consulter directement ce numéro en ligne en cliquant sur « Lire le numéro » dans le site public.
+                </p>
               </div>
 
               <label className="flex items-center gap-2 cursor-pointer pt-2">

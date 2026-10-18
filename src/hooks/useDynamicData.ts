@@ -95,6 +95,7 @@ export function useDynamicData() {
           image: c.image_url,
           description: c.description || "",
           featured: c.featured,
+          link: c.link_url || "",
         }));
         setCovers(mappedCovers);
         saveLocal(STORAGE_KEYS.COVERS, mappedCovers);
@@ -175,6 +176,7 @@ export function useDynamicData() {
         image_url: cover.image,
         description: cover.description,
         featured: cover.featured,
+        link_url: cover.link || "",
         order_index: 0,
       });
     }
@@ -195,6 +197,7 @@ export function useDynamicData() {
       if (patch.image !== undefined) dbPatch["image_url"] = patch.image;
       if (patch.description !== undefined) dbPatch["description"] = patch.description;
       if (patch.featured !== undefined) dbPatch["featured"] = patch.featured;
+      if (patch.link !== undefined) dbPatch["link_url"] = patch.link;
 
       await client.from("covers").update(dbPatch).eq("id", id);
     }
@@ -306,6 +309,7 @@ export function useDynamicData() {
         image_url: c.image,
         description: c.description || "",
         featured: c.featured,
+        link_url: c.link || "",
         order_index: idx + 1,
       }));
 
