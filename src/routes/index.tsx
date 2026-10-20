@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { sendLeadToGoogleSheets, type LeadData } from "@/lib/googleSheets";
+import { sendLeadToMake } from "@/lib/makeWebhook";
 import { getSupabase } from "@/lib/supabase";
 import { useDynamicData } from "@/hooks/useDynamicData";
 import {
@@ -1634,9 +1635,15 @@ function ContactForm({
         }
       }
 
-      // 2. Transmission vers Google Sheets et sauvegarde locale normalisée
-      const result = await sendLeadToGoogleSheets(lead);
-      if (result.success) {
+      // 2. Transmission principale vers le Webhook Make.com (connecté)
+      const makeResult = await sendLeadToMake(lead, { selectedPrestations });
+
+      // 3. Transmission complémentaire vers Google Sheets (si configuré)
+      sendLeadToGoogleSheets(lead).catch((sheetErr) => {
+        console.warn("Google Sheets submission notice:", sheetErr);
+      });
+
+      if (makeResult.success) {
         toast.success("Demande de devis transmise avec succès ! Notre équipe revient vers vous sous 24h.");
       } else {
         toast.success("Votre demande de devis a bien été enregistrée.");

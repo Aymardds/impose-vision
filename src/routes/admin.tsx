@@ -41,6 +41,7 @@ import {
   isSupabaseConfigured,
   type DbLead
 } from "@/lib/supabase";
+import { sendLeadToMake, MAKE_WEBHOOK_URL } from "@/lib/makeWebhook";
 import { SCHEMA_SQL } from "@/lib/schemaSql";
 import {
   type MagazineIssue,
@@ -167,6 +168,7 @@ function AdminPage() {
   const [seeding, setSeeding] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
   const [showSqlPreview, setShowSqlPreview] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
   const projectRef = SUPABASE_URL.replace(/^https?:\/\//, "").split(".")[0] || "";
   const sqlEditorUrl = projectRef
@@ -456,6 +458,38 @@ function AdminPage() {
     link.click();
     document.body.removeChild(link);
     toast.success(`${leads.length} leads exportés au format CSV`);
+  };
+
+  // Test Make.com Webhook
+  const handleTestMakeWebhook = async () => {
+    setTestingWebhook(true);
+    try {
+      const testLead = {
+        firstName: "Test",
+        lastName: "Make Webhook",
+        company: "IMPOSE Studio",
+        position: "Admin Test",
+        email: "contact@imposemag.com",
+        phone: "+225 07 00 00 00 00",
+        country: "Côte d'Ivoire",
+        sector: "Médias & Communication",
+        objective: "Validation automatique du connecteur Make.com",
+        selectedPackage: "Test Webhook",
+        message: "Message de test envoyé depuis le panneau d'administration IMPOSE.",
+        source: "Panneau Admin IMPOSE",
+        createdAt: new Date().toISOString(),
+      };
+      const res = await sendLeadToMake(testLead);
+      if (res.success) {
+        toast.success("Webhook Make.com joint avec succès (HTTP 200 Accepted) !");
+      } else {
+        toast.error(`Erreur webhook Make.com: ${res.error || "Échec d'envoi"}`);
+      }
+    } catch {
+      toast.error("Erreur lors de l'appel au webhook Make.com");
+    } finally {
+      setTestingWebhook(false);
+    }
   };
 
   // Run Supabase connection test
@@ -1107,6 +1141,46 @@ function AdminPage() {
               <Button variant="editorial" size="sm" onClick={exportLeadsCsv} disabled={leads.length === 0}>
                 <Download className="size-4 mr-1" /> Exporter en CSV ({leads.length})
               </Button>
+            </div>
+
+            {/* Carte statut Webhook Make.com */}
+            <div className="border border-gold/30 bg-card p-4 rounded-sm flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex size-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-semibold text-foreground tracking-wide uppercase">Webhook Make.com Connecté</span>
+                  <span className="rounded-full bg-gold/15 border border-gold/30 px-2 py-0.5 text-[10px] font-semibold text-gold">Actif</span>
+                </div>
+                <p className="text-xs text-muted-foreground font-mono break-all selection:bg-gold/20">
+                  {MAKE_WEBHOOK_URL}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Chaque soumission de formulaire de devis est immédiatement transmise à votre scénario Make.com.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(MAKE_WEBHOOK_URL);
+                    toast.success("URL du webhook copiée dans le presse-papier !");
+                  }}
+                  className="text-xs border-foreground/20 hover:border-gold"
+                >
+                  <Copy className="size-3.5 mr-1.5" /> Copier l'URL
+                </Button>
+                <Button
+                  variant="editorial"
+                  size="sm"
+                  onClick={handleTestMakeWebhook}
+                  disabled={testingWebhook}
+                  className="text-xs"
+                >
+                  <Sparkles className="size-3.5 mr-1.5" />
+                  {testingWebhook ? "Test en cours..." : "Tester le Webhook"}
+                </Button>
+              </div>
             </div>
 
             {leads.length === 0 ? (
