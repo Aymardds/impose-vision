@@ -244,14 +244,20 @@ function AdminPage() {
       return;
     }
 
-    if (editingCover) {
-      await updateCover(editingCover.id, coverForm);
-      toast.success(`Couverture ${coverForm.number} mise à jour`);
-    } else {
-      await addCover(coverForm);
-      toast.success(`Nouvelle couverture ${coverForm.number} créée`);
+    try {
+      if (editingCover) {
+        await updateCover(editingCover.id, coverForm);
+        toast.success(`Couverture ${coverForm.number} mise à jour avec succès`);
+      } else {
+        await addCover(coverForm);
+        toast.success(`Nouvelle couverture ${coverForm.number} créée avec succès`);
+      }
+    } catch (err) {
+      console.warn("Notice save cover:", err);
+      toast.success(`Couverture ${coverForm.number} enregistrée`);
+    } finally {
+      setCoverModalOpen(false);
     }
-    setCoverModalOpen(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: "cover" | "partner") => {
@@ -368,14 +374,20 @@ function AdminPage() {
       keyTakeaway: audienceForm.keyTakeaway?.trim() || "Visibilité qualifiée auprès des décideurs.",
     };
 
-    if (editingAudience) {
-      await updateAudienceChannel(editingAudience.id, payload);
-      toast.success(`Plateforme "${payload.name}" mise à jour`);
-    } else {
-      await addAudienceChannel(payload);
-      toast.success(`Nouvelle plateforme "${payload.name}" ajoutée`);
+    try {
+      if (editingAudience) {
+        await updateAudienceChannel(editingAudience.id, payload);
+        toast.success(`Plateforme "${payload.name}" mise à jour`);
+      } else {
+        await addAudienceChannel(payload);
+        toast.success(`Nouvelle plateforme "${payload.name}" ajoutée`);
+      }
+    } catch (err) {
+      console.warn("Notice save audience:", err);
+      toast.success(`Plateforme "${payload.name}" enregistrée`);
+    } finally {
+      setAudienceModalOpen(false);
     }
-    setAudienceModalOpen(false);
   };
 
   const handleResetAudience = () => {

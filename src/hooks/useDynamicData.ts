@@ -9,6 +9,7 @@ import {
   type PartnerItem,
   type MetricItem,
   type AudienceChannel,
+  type AudienceMetric,
   type TargetAudience,
 } from "@/data/impose";
 import {
@@ -23,6 +24,7 @@ import {
 
 const STORAGE_KEYS = {
   COVERS: "impose_dynamic_covers",
+  COVER_LINKS: "impose_dynamic_cover_links",
   PARTNERS: "impose_dynamic_partners",
   METRICS: "impose_dynamic_metrics",
   AUDIENCE: "impose_dynamic_audience",
@@ -45,15 +47,34 @@ function saveLocal<T>(key: string, data: T) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
+    // Notifie immédiatement tous les composants de la page en temps réel (même onglet)
+    window.dispatchEvent(
+      new CustomEvent("impose_storage_sync", { detail: { key, data } })
+    );
   } catch (e) {
     console.warn("Could not save to localStorage:", key, e);
   }
 }
 
+export function getStoredCoverLinks(): Record<string, string> {
+  return loadLocal<Record<string, string>>(STORAGE_KEYS.COVER_LINKS, {});
+}
+
+export function saveCoverLink(idOrNumber: string | number, link: string) {
+  const current = getStoredCoverLinks();
+  current[String(idOrNumber)] = link.trim();
+  saveLocal(STORAGE_KEYS.COVER_LINKS, current);
+}
+
 export function useDynamicData() {
-  const [covers, setCovers] = useState<MagazineIssue[]>(() =>
-    loadLocal(STORAGE_KEYS.COVERS, magazineIssues)
-  );
+  const [covers, setCovers] = useState<MagazineIssue[]>(() => {
+    const loaded = loadLocal(STORAGE_KEYS.COVERS, magazineIssues);
+    const storedLinks = getStoredCoverLinks();
+    return loaded.map((c) => ({
+      ...c,
+      link: c.link || storedLinks[String(c.id)] || storedLinks[c.number] || "",
+    }));
+  });
   const [partners, setPartners] = useState<PartnerItem[]>(() =>
     loadLocal(STORAGE_KEYS.PARTNERS, initialPartners)
   );
@@ -76,20 +97,55 @@ export function useDynamicData() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEYS.AUDIENCE && e.newValue) {
-        try {
-          setAudience(JSON.parse(e.newValue));
-        } catch (_) {}
+
+    const handleSync = (key: string, value: unknown) => {
+      if (key === STORAGE_KEYS.AUDIENCE && Array.isArray(value)) {
+        setAudience(value as AudienceChannel[]);
       }
-      if (e.key === STORAGE_KEYS.TARGET_AUDIENCES && e.newValue) {
+      if (key === STORAGE_KEYS.TARGET_AUDIENCES && Array.isArray(value)) {
+        setTargetAudiences(value as TargetAudience[]);
+      }
+      if (key === STORAGE_KEYS.COVERS && Array.isArray(value)) {
+        setCovers(value as MagazineIssue[]);
+      }
+      if (key === STORAGE_KEYS.PARTNERS && Array.isArray(value)) {
+        setPartners(value as PartnerItem[]);
+      }
+      if (key === STORAGE_KEYS.METRICS && Array.isArray(value)) {
+        setMetrics(value as MetricItem[]);
+      }
+      if (key === STORAGE_KEYS.COVER_LINKS && typeof value === "object" && value !== null) {
+        const linkMap = value as Record<string, string>;
+        setCovers((prev) =>
+          prev.map((c) => {
+            const freshLink = linkMap[String(c.id)] || linkMap[c.number];
+            return freshLink !== undefined ? { ...c, link: freshLink } : c;
+          })
+        );
+      }
+    };
+
+    const onCustomSync = (e: Event) => {
+      const customEvent = e as CustomEvent<{ key: string; data: unknown }>;
+      if (customEvent.detail) {
+        handleSync(customEvent.detail.key, customEvent.detail.data);
+      }
+    };
+
+    const onStorageEvent = (e: StorageEvent) => {
+      if (e.key && e.newValue) {
         try {
-          setTargetAudiences(JSON.parse(e.newValue));
+          handleSync(e.key, JSON.parse(e.newValue));
         } catch (_) {}
       }
     };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+
+    window.addEventListener("impose_storage_sync", onCustomSync);
+    window.addEventListener("storage", onStorageEvent);
+    return () => {
+      window.removeEventListener("impose_storage_sync", onCustomSync);
+      window.removeEventListener("storage", onStorageEvent);
+    };
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -116,17 +172,38 @@ export function useDynamicData() {
       // Covers
       if (coversRes.data && coversRes.data.length > 0) {
         hasSupabaseData = true;
-        const mappedCovers: MagazineIssue[] = coversRes.data.map((c: DbCover) => ({
-          id: c.id ?? Date.now(),
-          number: c.number,
-          title: c.title,
-          person: c.person,
-          date: c.date,
-          image: c.image_url,
-          description: c.description || "",
-          featured: c.featured,
-          link: c.link_url || "",
-        }));
+        const storedLinks = getStoredCoverLinks();
+        const existingLocalCovers = loadLocal<MagazineIssue[]>(STORAGE_KEYS.COVERS, []);
+        const localLinkMap = new Map<string, string>();
+        existingLocalCovers.forEach((c) => {
+          if (c.link) {
+            localLinkMap.set(String(c.id), c.link);
+            localLinkMap.set(c.number, c.link);
+          }
+        });
+
+        const mappedCovers: MagazineIssue[] = coversRes.data.map((c: DbCover) => {
+          const dbLink = (c.link_url || "").trim();
+          const fallbackLink =
+            storedLinks[String(c.id)] ||
+            storedLinks[c.number] ||
+            localLinkMap.get(String(c.id)) ||
+            localLinkMap.get(c.number) ||
+            "";
+          const link = dbLink || fallbackLink;
+
+          return {
+            id: c.id ?? Date.now(),
+            number: c.number,
+            title: c.title,
+            person: c.person,
+            date: c.date,
+            image: c.image_url,
+            description: c.description || "",
+            featured: c.featured,
+            link,
+          };
+        });
         setCovers(mappedCovers);
         saveLocal(STORAGE_KEYS.COVERS, mappedCovers);
       }
@@ -162,6 +239,32 @@ export function useDynamicData() {
         saveLocal(STORAGE_KEYS.METRICS, mappedMetrics);
       }
 
+      // Audience (de Supabase si disponible, sinon conservation du local)
+      try {
+        const audienceRes = await client.from("audience").select("*").order("order_index", { ascending: true });
+        if (audienceRes.data && audienceRes.data.length > 0) {
+          const mappedAudience: AudienceChannel[] = audienceRes.data.map((a: Record<string, unknown>) => ({
+            id: String(a["id"]),
+            name: String(a["name"] || ""),
+            badge: String(a["badge"] || "Chiffres Vérifiés"),
+            period: String(a["period"] || "Derniers 12 mois"),
+            headline: String(a["headline"] || ""),
+            subheadline: String(a["subheadline"] || ""),
+            primaryStat: (a["primary_stat"] as { value: string; label: string }) || { value: "", label: "" },
+            highlightBadge: (a["highlight_badge"] as string) || "",
+            keyTakeaway: String(a["key_takeaway"] || ""),
+            iconName: String(a["icon_name"] || "Globe"),
+            order_index: Number(a["order_index"]) || 0,
+            is_active: a["is_active"] !== false,
+            metrics: (a["metrics"] as AudienceMetric[]) || [],
+          }));
+          setAudience(mappedAudience);
+          saveLocal(STORAGE_KEYS.AUDIENCE, mappedAudience);
+        }
+      } catch (_) {
+        // Table audience optionnelle dans Supabase
+      }
+
       // Leads
       if (leadsRes.data && leadsRes.data.length > 0) {
         const normalizedLeads = (leadsRes.data as Record<string, unknown>[]).map(normalizeDbLead);
@@ -192,31 +295,62 @@ export function useDynamicData() {
   const addCover = async (cover: Omit<MagazineIssue, "id">) => {
     const newId = Date.now();
     const newCover: MagazineIssue = { ...cover, id: newId };
+    if (cover.link) {
+      saveCoverLink(newId, cover.link);
+      if (cover.number) saveCoverLink(cover.number, cover.link);
+    }
     const updated = [newCover, ...covers];
     setCovers(updated);
     saveLocal(STORAGE_KEYS.COVERS, updated);
 
     const client = getSupabase();
     if (client) {
-      await client.from("covers").insert({
-        number: cover.number,
-        title: cover.title,
-        person: cover.person,
-        date: cover.date,
-        image_url: cover.image,
-        description: cover.description,
-        featured: cover.featured,
-        link_url: cover.link || "",
-        order_index: 0,
-      });
+      try {
+        const { error } = await client.from("covers").insert({
+          number: cover.number,
+          title: cover.title,
+          person: cover.person,
+          date: cover.date,
+          image_url: cover.image,
+          description: cover.description,
+          featured: cover.featured,
+          link_url: cover.link || "",
+          order_index: 0,
+        });
+        if (error && (error.code === "PGRST204" || error.message?.includes("link_url"))) {
+          await client.from("covers").insert({
+            number: cover.number,
+            title: cover.title,
+            person: cover.person,
+            date: cover.date,
+            image_url: cover.image,
+            description: cover.description,
+            featured: cover.featured,
+            order_index: 0,
+          });
+        }
+      } catch (e) {
+        console.warn("Notice insertion cover Supabase:", e);
+      }
     }
   };
 
   const updateCover = async (id: number | string, patch: Partial<MagazineIssue>) => {
+    // 1. Sauvegarde dédiée du lien de l'article pour persistance absolue
+    if (patch.link !== undefined) {
+      saveCoverLink(id, patch.link);
+      const existing = covers.find((c) => c.id === id);
+      if (existing?.number) {
+        saveCoverLink(existing.number, patch.link);
+      }
+    }
+
+    // 2. Mise à jour immédiate locale et mémoire
     const updated = covers.map((c) => (c.id === id ? { ...c, ...patch } : c));
     setCovers(updated);
     saveLocal(STORAGE_KEYS.COVERS, updated);
 
+    // 3. Synchronisation Supabase tolérante aux pannes de schéma
     const client = getSupabase();
     if (client) {
       const dbPatch: Record<string, unknown> = {};
@@ -229,7 +363,15 @@ export function useDynamicData() {
       if (patch.featured !== undefined) dbPatch["featured"] = patch.featured;
       if (patch.link !== undefined) dbPatch["link_url"] = patch.link;
 
-      await client.from("covers").update(dbPatch).eq("id", id);
+      try {
+        const { error } = await client.from("covers").update(dbPatch).eq("id", id);
+        if (error && (error.code === "PGRST204" || error.message?.includes("link_url"))) {
+          delete dbPatch["link_url"];
+          await client.from("covers").update(dbPatch).eq("id", id);
+        }
+      } catch (err) {
+        console.warn("Notice mise à jour Supabase covers:", err);
+      }
     }
   };
 
@@ -418,14 +560,16 @@ export function useDynamicData() {
 
   // CRUD Audience Channels
   const updateAudienceChannel = async (id: string, patch: Partial<AudienceChannel>) => {
+    // 1. Sauvegarde locale et mémoire immédiate (instantanée)
     const updated = audience.map((a) => (a.id === id ? { ...a, ...patch } : a));
     setAudience(updated);
     saveLocal(STORAGE_KEYS.AUDIENCE, updated);
 
+    // 2. Synchronisation Supabase en arrière-plan (non-bloquante)
     const client = getSupabase();
     if (client) {
-      try {
-        await client.from("audience").update({
+      Promise.resolve(
+        client.from("audience").update({
           name: patch.name,
           badge: patch.badge,
           period: patch.period,
@@ -437,10 +581,10 @@ export function useDynamicData() {
           key_takeaway: patch.keyTakeaway,
           metrics: patch.metrics,
           is_active: patch.is_active,
-        }).eq("id", id);
-      } catch (err) {
-        // Table might not exist yet in Supabase schema, local storage acts as ground truth
-      }
+        }).eq("id", id)
+      ).catch((err) => {
+        console.warn("Notice sync Supabase audience:", err);
+      });
     }
   };
 
@@ -458,8 +602,8 @@ export function useDynamicData() {
 
     const client = getSupabase();
     if (client) {
-      try {
-        await client.from("audience").insert({
+      Promise.resolve(
+        client.from("audience").insert({
           id: newId,
           name: newChannel.name,
           badge: newChannel.badge,
@@ -473,10 +617,10 @@ export function useDynamicData() {
           metrics: newChannel.metrics,
           order_index: updated.length,
           is_active: true,
-        });
-      } catch (err) {
-        // Table might not exist yet in Supabase schema
-      }
+        })
+      ).catch((err) => {
+        console.warn("Notice insert Supabase audience:", err);
+      });
     }
   };
 
@@ -487,11 +631,9 @@ export function useDynamicData() {
 
     const client = getSupabase();
     if (client) {
-      try {
-        await client.from("audience").delete().eq("id", id);
-      } catch (err) {
-        // Ignore if table doesn't exist
-      }
+      Promise.resolve(
+        client.from("audience").delete().eq("id", id)
+      ).catch(() => {});
     }
   };
 
