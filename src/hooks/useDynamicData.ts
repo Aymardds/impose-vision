@@ -3,9 +3,13 @@ import {
   magazineIssues,
   initialPartners,
   initialMetrics,
+  initialAudienceChannels,
+  initialTargetAudiences,
   type MagazineIssue,
   type PartnerItem,
   type MetricItem,
+  type AudienceChannel,
+  type TargetAudience,
 } from "@/data/impose";
 import {
   getSupabase,
@@ -21,6 +25,8 @@ const STORAGE_KEYS = {
   COVERS: "impose_dynamic_covers",
   PARTNERS: "impose_dynamic_partners",
   METRICS: "impose_dynamic_metrics",
+  AUDIENCE: "impose_dynamic_audience",
+  TARGET_AUDIENCES: "impose_dynamic_target_audiences",
   LEADS: "impose_leads_backup",
 };
 
@@ -54,6 +60,12 @@ export function useDynamicData() {
   const [metrics, setMetrics] = useState<MetricItem[]>(() =>
     loadLocal(STORAGE_KEYS.METRICS, initialMetrics)
   );
+  const [audience, setAudience] = useState<AudienceChannel[]>(() =>
+    loadLocal(STORAGE_KEYS.AUDIENCE, initialAudienceChannels)
+  );
+  const [targetAudiences, setTargetAudiences] = useState<TargetAudience[]>(() =>
+    loadLocal(STORAGE_KEYS.TARGET_AUDIENCES, initialTargetAudiences)
+  );
   const [leads, setLeads] = useState<DbLead[]>(() => {
     const raw = loadLocal<Record<string, unknown>[]>(STORAGE_KEYS.LEADS, []);
     return raw.map(normalizeDbLead);
@@ -61,6 +73,24 @@ export function useDynamicData() {
   const [loading, setLoading] = useState(false);
   const [isSupabaseActive, setIsSupabaseActive] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.AUDIENCE && e.newValue) {
+        try {
+          setAudience(JSON.parse(e.newValue));
+        } catch (_) {}
+      }
+      if (e.key === STORAGE_KEYS.TARGET_AUDIENCES && e.newValue) {
+        try {
+          setTargetAudiences(JSON.parse(e.newValue));
+        } catch (_) {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -386,10 +416,127 @@ export function useDynamicData() {
     }
   };
 
+  // CRUD Audience Channels
+  const updateAudienceChannel = async (id: string, patch: Partial<AudienceChannel>) => {
+    const updated = audience.map((a) => (a.id === id ? { ...a, ...patch } : a));
+    setAudience(updated);
+    saveLocal(STORAGE_KEYS.AUDIENCE, updated);
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from("audience").update({
+          name: patch.name,
+          badge: patch.badge,
+          period: patch.period,
+          headline: patch.headline,
+          subheadline: patch.subheadline,
+          primary_stat: patch.primaryStat,
+          highlight_badge: patch.highlightBadge,
+          icon_name: patch.iconName,
+          key_takeaway: patch.keyTakeaway,
+          metrics: patch.metrics,
+          is_active: patch.is_active,
+        }).eq("id", id);
+      } catch (err) {
+        // Table might not exist yet in Supabase schema, local storage acts as ground truth
+      }
+    }
+  };
+
+  const addAudienceChannel = async (channel: Omit<AudienceChannel, "id"> & { id?: string }) => {
+    const newId = channel.id || `channel_${Date.now()}`;
+    const newChannel: AudienceChannel = {
+      ...channel,
+      id: newId,
+      is_active: channel.is_active !== false,
+      metrics: channel.metrics || [],
+    };
+    const updated = [...audience, newChannel];
+    setAudience(updated);
+    saveLocal(STORAGE_KEYS.AUDIENCE, updated);
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from("audience").insert({
+          id: newId,
+          name: newChannel.name,
+          badge: newChannel.badge,
+          period: newChannel.period,
+          headline: newChannel.headline,
+          subheadline: newChannel.subheadline,
+          primary_stat: newChannel.primaryStat,
+          highlight_badge: newChannel.highlightBadge,
+          icon_name: newChannel.iconName,
+          key_takeaway: newChannel.keyTakeaway,
+          metrics: newChannel.metrics,
+          order_index: updated.length,
+          is_active: true,
+        });
+      } catch (err) {
+        // Table might not exist yet in Supabase schema
+      }
+    }
+  };
+
+  const deleteAudienceChannel = async (id: string) => {
+    const updated = audience.filter((a) => a.id !== id);
+    setAudience(updated);
+    saveLocal(STORAGE_KEYS.AUDIENCE, updated);
+
+    const client = getSupabase();
+    if (client) {
+      try {
+        await client.from("audience").delete().eq("id", id);
+      } catch (err) {
+        // Ignore if table doesn't exist
+      }
+    }
+  };
+
+  const resetAudienceToDefault = () => {
+    setAudience(initialAudienceChannels);
+    saveLocal(STORAGE_KEYS.AUDIENCE, initialAudienceChannels);
+  };
+
+  // CRUD Target Audiences ("Pour qui ?")
+  const updateTargetAudience = (id: string, patch: Partial<TargetAudience>) => {
+    const updated = targetAudiences.map((t) => (t.id === id ? { ...t, ...patch } : t));
+    setTargetAudiences(updated);
+    saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+  };
+
+  const addTargetAudience = (target: Omit<TargetAudience, "id"> & { id?: string }) => {
+    const newId = target.id || `cible_${Date.now()}`;
+    const newTarget: TargetAudience = {
+      ...target,
+      id: newId,
+      is_active: target.is_active !== false,
+      order_index: targetAudiences.length + 1,
+    };
+    const updated = [...targetAudiences, newTarget];
+    setTargetAudiences(updated);
+    saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+  };
+
+  const deleteTargetAudience = (id: string) => {
+    const updated = targetAudiences.filter((t) => t.id !== id);
+    setTargetAudiences(updated);
+    saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+  };
+
+  const resetTargetAudiencesToDefault = () => {
+    setTargetAudiences(initialTargetAudiences);
+    saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, initialTargetAudiences);
+  };
+
   return {
     covers,
     partners,
     metrics,
+    audience,
+    targetAudiences,
     leads,
     loading,
     isSupabaseActive,
@@ -403,6 +550,14 @@ export function useDynamicData() {
     updatePartner,
     deletePartner,
     updateMetric,
+    updateAudienceChannel,
+    addAudienceChannel,
+    deleteAudienceChannel,
+    resetAudienceToDefault,
+    updateTargetAudience,
+    addTargetAudience,
+    deleteTargetAudience,
+    resetTargetAudiencesToDefault,
     recordLead,
     deleteLead,
     seedToSupabase,

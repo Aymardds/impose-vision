@@ -49,7 +49,7 @@ export type MagazineIssue = {
 
 export function extractEditionNumber(numStr: string): number {
   const match = numStr.match(/(\d+)/);
-  return match ? parseInt(match[1], 10) : 0;
+  return match && match[1] ? parseInt(match[1], 10) : 0;
 }
 
 export function sortCoversChronological(issues: MagazineIssue[], order: "desc" | "asc" = "desc"): MagazineIssue[] {
@@ -128,7 +128,7 @@ export const magazineIssues: MagazineIssue[] = [
     id: 25,
     number: "N°25",
     title: "Pourquoi les investisseurs misent sur la finance africaine ?",
-    date: "Janvier 2025",
+    date: "Janvier 2026",
     image: ouedraogoCover,
     description: "Jonathan Ouedraogo — Banque et Ingénierie Financière, Expert E-commerce. SEDAP & Programme TEF.",
     person: "Jonathan Ouedraogo",
@@ -164,26 +164,7 @@ export const magazineIssues: MagazineIssue[] = [
     person: "Deborah Gael",
     featured: false,
   },
-  {
-    id: 221,
-    number: "N°22",
-    title: "$145 million to boost energy & Finance internationale",
-    date: "Octobre 2024",
-    image: brianCover,
-    description: "Brian Hurfet — CEO de BHB Investments & Business Services et African Insights Academy. Ancien banquier d'affaires.",
-    person: "Brian Hurfet",
-    featured: false,
-  },
-  {
-    id: 211,
-    number: "N°21",
-    title: "L'inclusion financière dans le contexte africain",
-    date: "Septembre 2025",
-    image: darlyNguemaCover,
-    description: "Darly Nguema — Analyste financière. L'accès universel et équitable aux services financiers numériques abordables.",
-    person: "Darly Nguema",
-    featured: false,
-  },
+
   {
     id: 21,
     number: "N°21",
@@ -546,4 +527,120 @@ export const initialMetrics: MetricItem[] = [
   { id: 2, key: "pays", value: "+15", label: "Pays représentés", iconName: "Globe", order_index: 2 },
   { id: 3, key: "leaders", value: "+500", label: "Leaders mis en avant", iconName: "TrendingUp", order_index: 3 },
   { id: 4, key: "digital", value: "100%", label: "Média 100% Digital", iconName: "Zap", order_index: 4 },
+];
+
+export interface AudienceMetric {
+  id: string;
+  label: string;
+  value: string;
+  highlight?: string;
+}
+
+export interface AudienceChannel {
+  id: string;
+  name: string;
+  badge: string;
+  period: string;
+  headline: string;
+  subheadline: string;
+  primaryStat: {
+    value: string;
+    label: string;
+  };
+  metrics: AudienceMetric[];
+  highlightBadge?: string;
+  keyTakeaway: string;
+  iconName: string;
+  order_index?: number;
+  is_active?: boolean;
+}
+
+export const initialAudienceChannels: AudienceChannel[] = [
+  {
+    id: "website",
+    name: "Site Web & Éditions Digitales",
+    badge: "Google Analytics Certifié",
+    period: "Janv. 2023 – Juin 2026",
+    headline: "9,5k Utilisateurs Actifs",
+    subheadline: "9,4k nouveaux utilisateurs — Portée d'acquisition continue et ~100% de trafic frais",
+    primaryStat: {
+      value: "9,5k",
+      label: "Lecteurs uniques",
+    },
+    highlightBadge: "~100% Trafic frais",
+    iconName: "Globe",
+    order_index: 1,
+    is_active: true,
+    keyTakeaway: "Un vivier permanent de nouveaux visiteurs et décideurs qualifiés découvrant vos réalisations chaque mois.",
+    metrics: [
+      { id: "new_users", label: "Nouveaux visiteurs", value: "9,4k", highlight: "~100% trafic frais" },
+      { id: "events", label: "Événements générés", value: "51k+", highlight: "Interactions réelles" },
+      { id: "best_article", label: "Record meilleur article", value: "3,1k vues", highlight: "8,5k interactions" },
+      { id: "avg_duration", label: "Temps moyen d'engagement", value: "48s", highlight: "Lecture ciblée" },
+    ],
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn B2B Exécutif",
+    badge: "Page Décideurs & C-Level",
+    period: "26 Juil. 2025 – 25 Juil. 2026",
+    headline: "1 083 Dirigeants & Décideurs",
+    subheadline: "Communauté professionnelle hautement ciblée : C-Levels, investisseurs, fondateurs",
+    primaryStat: {
+      value: "29 514",
+      label: "Impressions / an",
+    },
+    highlightBadge: "B2B Décisionnaires",
+    iconName: "Linkedin",
+    order_index: 2,
+    is_active: true,
+    keyTakeaway: "Un taux d'engagement qualitatif élevé auprès des décideurs économiques d'Afrique de l'Ouest, Centrale et de la diaspora.",
+    metrics: [
+      { id: "subscribers", label: "Abonnés qualifiés", value: "1 083", highlight: "Décideurs C-Level" },
+      { id: "reactions", label: "Réactions & Likes", value: "1 113", highlight: "Forte adhésion" },
+      { id: "comments", label: "Commentaires qualifiés", value: "80", highlight: "Débats d'experts" },
+      { id: "shares", label: "Partages réseau", value: "56", highlight: "Viralité B2B" },
+    ],
+  },
+  {
+    id: "facebook",
+    name: "Facebook & Formats Visuels",
+    badge: "Impact & Portée Organique",
+    period: "27 Janv. – 27 Juil. 2026 (~6 mois)",
+    headline: "52 597 Vues en 6 mois",
+    subheadline: "94,6% des vues proviennent de non-abonnés — Viralité organique exceptionnelle",
+    primaryStat: {
+      value: "52 597",
+      label: "Vues en 6 mois",
+    },
+    highlightBadge: "94,6% Hors abonnés",
+    iconName: "Facebook",
+    order_index: 3,
+    is_active: true,
+    keyTakeaway: "Votre marque touche une audience 20 fois supérieure à la seule base abonnés grâce à la viralité organique de nos couvertures (82,8% de vues photo).",
+    metrics: [
+      { id: "non_followers", label: "Portée hors abonnés", value: "94,6%", highlight: "Viralité organique pure" },
+      { id: "photo_format", label: "Contenu format visuel", value: "82,8%", highlight: "Impact des couvertures" },
+      { id: "link_share", label: "Clics & liens", value: "14,3%", highlight: "Redirection qualifiée" },
+      { id: "viral_scope", label: "Multiplicateur de portée", value: "x20", highlight: "Expansion virale" },
+    ],
+  },
+];
+
+export interface TargetAudience {
+  id: string;
+  title: string;
+  description: string;
+  ctaText?: string;
+  order_index?: number;
+  is_active?: boolean;
+}
+
+export const initialTargetAudiences: TargetAudience[] = [
+  { id: "entrepreneurs", title: "Entrepreneurs", description: "Développez votre visibilité et votre personal branding.", ctaText: "Être interviewé", is_active: true, order_index: 1 },
+  { id: "pme", title: "PME", description: "Présentez vos produits, services et réussites.", ctaText: "Mettre en avant mon entreprise", is_active: true, order_index: 2 },
+  { id: "grandes-entreprises", title: "Grandes entreprises", description: "Développez vos campagnes de communication et votre image.", ctaText: "Campagne publicitaire", is_active: true, order_index: 3 },
+  { id: "institutions", title: "Institutions", description: "Valorisez vos programmes, projets et initiatives.", ctaText: "Communication institutionnelle", is_active: true, order_index: 4 },
+  { id: "ong-fondations", title: "ONG & fondations", description: "Mettez en lumière votre impact social et environnemental.", ctaText: "Partenariat média", is_active: true, order_index: 5 },
+  { id: "experts-dirigeants", title: "Experts & dirigeants", description: "Construisez votre autorité et votre influence sectorielle.", ctaText: "Valoriser mon parcours", is_active: true, order_index: 6 },
 ];

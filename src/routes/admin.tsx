@@ -25,7 +25,11 @@ import {
   ShieldCheck,
   AlertCircle,
   Database,
-  Copy
+  Copy,
+  BarChart3,
+  RotateCcw,
+  Edit3,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -38,7 +42,13 @@ import {
   type DbLead
 } from "@/lib/supabase";
 import { SCHEMA_SQL } from "@/lib/schemaSql";
-import { type MagazineIssue, type PartnerItem } from "@/data/impose";
+import {
+  type MagazineIssue,
+  type PartnerItem,
+  type AudienceChannel,
+  type AudienceMetric,
+  type TargetAudience,
+} from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 
 export const Route = createFileRoute("/admin")({
@@ -60,12 +70,14 @@ function AdminPage() {
   });
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [activeTab, setActiveTab] = useState<"covers" | "partners" | "metrics" | "leads" | "supabase">("covers");
+  const [activeTab, setActiveTab] = useState<"covers" | "partners" | "metrics" | "audience" | "leads" | "supabase">("covers");
 
   const {
     covers,
     partners,
     metrics,
+    audience,
+    targetAudiences,
     leads,
     loading,
     isSupabaseActive,
@@ -78,9 +90,51 @@ function AdminPage() {
     updatePartner,
     deletePartner,
     updateMetric,
+    updateAudienceChannel,
+    addAudienceChannel,
+    deleteAudienceChannel,
+    resetAudienceToDefault,
+    updateTargetAudience,
+    addTargetAudience,
+    deleteTargetAudience,
+    resetTargetAudiencesToDefault,
     deleteLead,
     seedToSupabase,
   } = useDynamicData();
+
+  // Audience modal state
+  const [audienceModalOpen, setAudienceModalOpen] = useState(false);
+  const [editingAudience, setEditingAudience] = useState<AudienceChannel | null>(null);
+  const [audienceForm, setAudienceForm] = useState<AudienceChannel>({
+    id: "",
+    name: "",
+    badge: "",
+    period: "",
+    headline: "",
+    subheadline: "",
+    primaryStat: { value: "", label: "" },
+    highlightBadge: "",
+    keyTakeaway: "",
+    iconName: "Globe",
+    is_active: true,
+    metrics: [
+      { id: "m1", label: "", value: "", highlight: "" },
+      { id: "m2", label: "", value: "", highlight: "" },
+      { id: "m3", label: "", value: "", highlight: "" },
+      { id: "m4", label: "", value: "", highlight: "" },
+    ],
+  });
+
+  // Target audience modal state ("Pour qui ?")
+  const [targetModalOpen, setTargetModalOpen] = useState(false);
+  const [editingTarget, setEditingTarget] = useState<TargetAudience | null>(null);
+  const [targetForm, setTargetForm] = useState<TargetAudience>({
+    id: "",
+    title: "",
+    description: "",
+    ctaText: "En savoir plus",
+    is_active: true,
+  });
 
   // Cover modal state
   const [coverModalOpen, setCoverModalOpen] = useState(false);
@@ -244,6 +298,130 @@ function AdminPage() {
     toast.success(`Partenaire ${partnerForm.name} ajouté`);
     setPartnerModalOpen(false);
     setPartnerForm({ name: "", logo: "", className: "h-9 sm:h-11 w-auto max-w-[140px]", website: "" });
+  };
+
+  // Audience Handlers
+  const openAudienceModal = (channel?: AudienceChannel) => {
+    if (channel) {
+      setEditingAudience(channel);
+      setAudienceForm({
+        id: channel.id,
+        name: channel.name,
+        badge: channel.badge || "Chiffres Vérifiés",
+        period: channel.period || "Derniers 12 mois",
+        headline: channel.headline || `${channel.primaryStat?.value || ""} ${channel.primaryStat?.label || ""}`,
+        subheadline: channel.subheadline || "",
+        primaryStat: {
+          value: channel.primaryStat?.value || "",
+          label: channel.primaryStat?.label || "",
+        },
+        highlightBadge: channel.highlightBadge || "",
+        keyTakeaway: channel.keyTakeaway || "",
+        iconName: channel.iconName || (channel.id === "linkedin" ? "Linkedin" : channel.id === "facebook" ? "Facebook" : "Globe"),
+        is_active: channel.is_active !== false,
+        metrics: channel.metrics && channel.metrics.length > 0 ? channel.metrics.map((m) => ({ ...m })) : [
+          { id: "m1", label: "", value: "", highlight: "" },
+          { id: "m2", label: "", value: "", highlight: "" },
+          { id: "m3", label: "", value: "", highlight: "" },
+          { id: "m4", label: "", value: "", highlight: "" },
+        ],
+      });
+    } else {
+      setEditingAudience(null);
+      setAudienceForm({
+        id: `channel_${Date.now()}`,
+        name: "Nouvelle Plateforme",
+        badge: "Données Vérifiées",
+        period: "Derniers 12 mois",
+        headline: "",
+        subheadline: "",
+        primaryStat: { value: "", label: "" },
+        highlightBadge: "",
+        keyTakeaway: "",
+        iconName: "Globe",
+        is_active: true,
+        metrics: [
+          { id: "m1", label: "Indicateur 1", value: "", highlight: "" },
+          { id: "m2", label: "Indicateur 2", value: "", highlight: "" },
+          { id: "m3", label: "Indicateur 3", value: "", highlight: "" },
+          { id: "m4", label: "Indicateur 4", value: "", highlight: "" },
+        ],
+      });
+    }
+    setAudienceModalOpen(true);
+  };
+
+  const handleSaveAudience = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!audienceForm.name.trim()) {
+      toast.error("Veuillez renseigner au moins le nom de la plateforme");
+      return;
+    }
+    const payload: AudienceChannel = {
+      ...audienceForm,
+      headline: audienceForm.headline?.trim() || `${audienceForm.primaryStat?.value || ""} ${audienceForm.primaryStat?.label || ""}`.trim() || audienceForm.name,
+      subheadline: audienceForm.subheadline?.trim() || audienceForm.name,
+      badge: audienceForm.badge?.trim() || "Chiffres Vérifiés",
+      period: audienceForm.period?.trim() || "Derniers 12 mois",
+      keyTakeaway: audienceForm.keyTakeaway?.trim() || "Visibilité qualifiée auprès des décideurs.",
+    };
+
+    if (editingAudience) {
+      await updateAudienceChannel(editingAudience.id, payload);
+      toast.success(`Plateforme "${payload.name}" mise à jour`);
+    } else {
+      await addAudienceChannel(payload);
+      toast.success(`Nouvelle plateforme "${payload.name}" ajoutée`);
+    }
+    setAudienceModalOpen(false);
+  };
+
+  const handleResetAudience = () => {
+    if (confirm("Réinitialiser l'ensemble des statistiques d'audience avec les données certifiées par défaut (Site web, LinkedIn B2B, Facebook) ?")) {
+      resetAudienceToDefault();
+      toast.success("Statistiques d'audience réinitialisées aux données certifiées");
+    }
+  };
+
+  // Target Audience Handlers ("Pour qui ?")
+  const openTargetModal = (item?: TargetAudience) => {
+    if (item) {
+      setEditingTarget(item);
+      setTargetForm({ ...item });
+    } else {
+      setEditingTarget(null);
+      setTargetForm({
+        id: `cible_${Date.now()}`,
+        title: "",
+        description: "",
+        ctaText: "En savoir plus",
+        is_active: true,
+      });
+    }
+    setTargetModalOpen(true);
+  };
+
+  const handleSaveTarget = (e: FormEvent) => {
+    e.preventDefault();
+    if (!targetForm.title.trim() || !targetForm.description.trim()) {
+      toast.error("Veuillez renseigner le titre et la description de la cible");
+      return;
+    }
+    if (editingTarget) {
+      updateTargetAudience(editingTarget.id, targetForm);
+      toast.success(`Cible "${targetForm.title}" modifiée avec succès`);
+    } else {
+      addTargetAudience(targetForm);
+      toast.success(`Nouvelle cible "${targetForm.title}" ajoutée`);
+    }
+    setTargetModalOpen(false);
+  };
+
+  const handleResetTargets = () => {
+    if (confirm("Réinitialiser les cibles ('Pour qui ?') aux valeurs d'origine ?")) {
+      resetTargetAudiencesToDefault();
+      toast.success("Cibles réinitialisées avec succès");
+    }
   };
 
   // Export leads to CSV
@@ -432,6 +610,16 @@ function AdminPage() {
           >
             <TrendingUp className="size-4" />
             Métriques ({metrics.length})
+          </Button>
+
+          <Button
+            variant={activeTab === "audience" ? "editorial" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("audience")}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="size-4" />
+            Audience & Cibles ({audience.length + targetAudiences.length})
           </Button>
 
           <Button
@@ -695,6 +883,210 @@ function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            TAB: AUDIENCE & STATISTIQUES CERTIFIÉES
+           ========================================================================= */}
+        {activeTab === "audience" && (
+          <div className="mt-8 space-y-10">
+            {/* 1. PLATEFORMES D'AUDIENCE (LIGNE 3 COLONNES) */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/50 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold font-mono">
+                      Landing Page · Section 1 Ligne / 3 Colonnes
+                    </span>
+                  </div>
+                  <h2 className="mt-1 font-display text-2xl font-medium">Plateformes & Chiffres d'Audience ({audience.length})</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Modifiez les 3 plateformes (Site Web, LinkedIn, Facebook...) affichées sur une ligne avec leurs logos, chiffres clés et badges.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleResetAudience} className="text-xs text-muted-foreground hover:text-foreground">
+                    <RotateCcw className="size-3.5 mr-1" /> Données officielles
+                  </Button>
+                  <Button variant="editorial" size="sm" onClick={() => openAudienceModal()}>
+                    <Plus className="size-4 mr-1" /> Ajouter une plateforme
+                  </Button>
+                </div>
+              </div>
+
+              {/* Aperçu en direct */}
+              <div className="rounded border border-gold/30 bg-primary/40 p-4 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gold mb-3 flex items-center gap-1.5">
+                  <Eye className="size-3.5" /> Aperçu en direct de la bannière publique (1 ligne, 3 colonnes)
+                </p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  {audience.filter((c) => c.is_active !== false).slice(0, 3).map((ch) => (
+                    <div key={ch.id} className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-center">
+                      <p className="text-[10px] font-bold text-gold uppercase">{ch.name}</p>
+                      <p className="font-display text-xl sm:text-2xl font-bold text-white mt-1">{ch.primaryStat?.value || "—"}</p>
+                      <p className="text-[10px] text-white/60">{ch.primaryStat?.label || "—"}</p>
+                      {ch.highlightBadge && (
+                        <span className="mt-1.5 inline-block text-[9px] font-bold text-gold bg-gold/15 px-2 py-0.5 rounded-full">
+                          {ch.highlightBadge}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cartes de gestion des canaux */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {audience.map((channel) => (
+                  <div
+                    key={channel.id}
+                    className={`relative flex flex-col justify-between rounded border p-5 transition-all ${
+                      channel.is_active !== false
+                        ? "border-foreground/15 bg-card/90 shadow-sm"
+                        : "border-foreground/10 bg-card/40 opacity-60"
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 items-center justify-center rounded bg-gold/15 text-gold text-xs font-bold font-mono">
+                            {channel.iconName === "Linkedin" ? "in" : channel.iconName === "Facebook" ? "fb" : "web"}
+                          </span>
+                          <div>
+                            <h3 className="font-display text-base font-bold text-foreground leading-tight">{channel.name}</h3>
+                            <p className="text-[10px] text-muted-foreground">{channel.badge || "Certifié"}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => updateAudienceChannel(channel.id, { is_active: channel.is_active === false })}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
+                            channel.is_active !== false
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-muted text-muted-foreground border border-border"
+                          }`}
+                          title="Cliquer pour activer/désactiver sur le site public"
+                        >
+                          {channel.is_active !== false ? "Actif" : "Masqué"}
+                        </button>
+                      </div>
+
+                      <div className="rounded border border-gold/30 bg-gold/5 p-3 flex items-center justify-between">
+                        <div>
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Chiffre Clé</span>
+                          <p className="font-display text-2xl font-bold text-foreground">{channel.primaryStat?.value}</p>
+                          <p className="text-[11px] text-muted-foreground">{channel.primaryStat?.label}</p>
+                        </div>
+                        {channel.highlightBadge && (
+                          <span className="rounded bg-gold/20 border border-gold/40 px-2 py-1 text-[10px] font-bold text-gold uppercase tracking-wider">
+                            {channel.highlightBadge}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+                      <Button variant="ghost" size="sm" onClick={() => openAudienceModal(channel)} className="gap-1.5 text-xs">
+                        <Edit3 className="size-3.5 text-gold" /> Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Supprimer la plateforme "${channel.name}" ?`)) {
+                            deleteAudienceChannel(channel.id);
+                            toast.success(`Plateforme "${channel.name}" supprimée`);
+                          }
+                        }}
+                        className="text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. CIBLES & ACTEURS ("POUR QUI ?") */}
+            <div className="space-y-4 pt-6 border-t border-border/60">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold font-mono">
+                      Landing Page · Section "Pour qui ?"
+                    </span>
+                  </div>
+                  <h2 className="mt-1 font-display text-2xl font-medium">Cibles & Acteurs Accompagnés ({targetAudiences.length})</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Gérez les segments de clientèle (Entrepreneurs, PME, Institutions, ONG...) et personnalisez les textes et boutons.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleResetTargets} className="text-xs text-muted-foreground hover:text-foreground">
+                    <RotateCcw className="size-3.5 mr-1" /> Cibles par défaut
+                  </Button>
+                  <Button variant="editorial" size="sm" onClick={() => openTargetModal()}>
+                    <Plus className="size-4 mr-1" /> Ajouter une cible
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {targetAudiences.map((target) => (
+                  <div
+                    key={target.id}
+                    className={`relative flex flex-col justify-between rounded border p-5 transition-all ${
+                      target.is_active !== false
+                        ? "border-foreground/15 bg-card/90 shadow-sm"
+                        : "border-foreground/10 bg-card/40 opacity-60"
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gold font-mono">{target.title}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateTargetAudience(target.id, { is_active: target.is_active === false })}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider transition-colors ${
+                            target.is_active !== false
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-muted text-muted-foreground border border-border"
+                          }`}
+                        >
+                          {target.is_active !== false ? "Actif" : "Masqué"}
+                        </button>
+                      </div>
+                      <p className="text-xs text-foreground/90 leading-relaxed font-display text-base font-medium">{target.description}</p>
+                      <p className="text-[11px] text-gold/80 font-medium">Bouton : {target.ctaText || "En savoir plus"} →</p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+                      <Button variant="ghost" size="sm" onClick={() => openTargetModal(target)} className="gap-1.5 text-xs">
+                        <Edit3 className="size-3.5 text-gold" /> Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Supprimer la cible "${target.title}" ?`)) {
+                            deleteTargetAudience(target.id);
+                            toast.success(`Cible "${target.title}" supprimée`);
+                          }
+                        }}
+                        className="text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1116,6 +1508,225 @@ function AdminPage() {
                 </Button>
                 <Button type="submit" variant="editorial" size="sm">
                   Ajouter le partenaire
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {audienceModalOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="relative my-8 w-full max-w-xl rounded-sm border border-gold/40 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold">
+                  {editingAudience ? `Modifier la plateforme : ${editingAudience.name}` : "Ajouter une Plateforme d'Audience"}
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Personnalisez la plateforme, son logo officiel, et son chiffre clé mis en avant sur la landing page.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setAudienceModalOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSaveAudience} className="mt-4 space-y-4 text-xs">
+              {/* Type de plateforme & logo */}
+              <div>
+                <label className="font-semibold text-muted-foreground block mb-1.5">
+                  Plateforme / Logo officiel
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "website", icon: "Globe", label: "Site Web", hint: "Google Analytics" },
+                    { id: "linkedin", icon: "Linkedin", label: "LinkedIn", hint: "Réseau B2B" },
+                    { id: "facebook", icon: "Facebook", label: "Facebook", hint: "Viralité & Média" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setAudienceForm({
+                          ...audienceForm,
+                          iconName: p.icon,
+                          id: editingAudience ? audienceForm.id : p.id,
+                          name: p.label,
+                        });
+                      }}
+                      className={`flex flex-col items-center gap-1 rounded border p-2.5 text-center transition-all ${
+                        audienceForm.iconName === p.icon || audienceForm.id === p.id
+                          ? "border-gold bg-gold/15 text-gold font-bold shadow-sm"
+                          : "border-border bg-background/50 hover:bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold">{p.label}</span>
+                      <span className="text-[9px] opacity-75">{p.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nom affiché */}
+              <div>
+                <label className="font-semibold text-muted-foreground">Nom affiché sur la page</label>
+                <input
+                  type="text"
+                  value={audienceForm.name}
+                  onChange={(e) => setAudienceForm({ ...audienceForm, name: e.target.value })}
+                  placeholder="Ex: Site Web, LinkedIn, Facebook..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  required
+                />
+              </div>
+
+              {/* Chiffre Clé & Libellé */}
+              <div className="rounded border border-gold/30 bg-gold/5 p-3.5 space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gold flex items-center gap-1.5">
+                  <BarChart3 className="size-3.5" /> Chiffre Clé mis en avant (Ligne 3 colonnes)
+                </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Valeur (ex: 9,5k, 29 514, 52 597)</label>
+                    <input
+                      type="text"
+                      value={audienceForm.primaryStat?.value || ""}
+                      onChange={(e) =>
+                        setAudienceForm({
+                          ...audienceForm,
+                          primaryStat: { ...audienceForm.primaryStat, value: e.target.value },
+                        })
+                      }
+                      className="mt-1 w-full border border-input bg-background p-2 font-mono font-bold text-sm rounded-sm outline-none focus:border-gold"
+                      placeholder="Ex: 52 597"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Libellé (ex: Vues en 6 mois, Lecteurs)</label>
+                    <input
+                      type="text"
+                      value={audienceForm.primaryStat?.label || ""}
+                      onChange={(e) =>
+                        setAudienceForm({
+                          ...audienceForm,
+                          primaryStat: { ...audienceForm.primaryStat, label: e.target.value },
+                        })
+                      }
+                      className="mt-1 w-full border border-input bg-background p-2 text-xs rounded-sm outline-none focus:border-gold"
+                      placeholder="Ex: Vues en 6 mois"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Badge Highlight */}
+              <div>
+                <label className="font-semibold text-muted-foreground">Badge Mis en Avant (Pilule dorée)</label>
+                <input
+                  type="text"
+                  value={audienceForm.highlightBadge || ""}
+                  onChange={(e) => setAudienceForm({ ...audienceForm, highlightBadge: e.target.value })}
+                  placeholder="Ex: ~100% Trafic frais, B2B Décisionnaires, 94,6% Hors abonnés..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">Apparaît sous forme de pilule dorée sous le chiffre sur la landing page.</p>
+              </div>
+
+              {/* Checkbox active */}
+              <label className="flex items-center gap-2 pt-2 cursor-pointer border-t border-border/50">
+                <input
+                  type="checkbox"
+                  checked={audienceForm.is_active !== false}
+                  onChange={(e) => setAudienceForm({ ...audienceForm, is_active: e.target.checked })}
+                  className="size-4 accent-[var(--gold)]"
+                />
+                <span className="font-medium text-foreground">Afficher cette plateforme sur la landing page</span>
+              </label>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setAudienceModalOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" variant="editorial" size="sm">
+                  {editingAudience ? "Sauvegarder les modifications" : "Créer la plateforme"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CIBLES & PERSONAS ("POUR QUI ?") */}
+      {targetModalOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="relative my-8 w-full max-w-lg rounded-sm border border-gold/40 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold">
+                  {editingTarget ? `Modifier la cible : ${editingTarget.title}` : "Ajouter une Cible / Persona"}
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Section "Pour qui ?" — Définissez les catégories de décideurs et professionnels accompagnés par IMPOSE.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setTargetModalOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSaveTarget} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-muted-foreground">Titre de la cible</label>
+                <input
+                  type="text"
+                  value={targetForm.title}
+                  onChange={(e) => setTargetForm({ ...targetForm, title: e.target.value })}
+                  placeholder="Ex: Entrepreneurs, PME, Institutions, Startups..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground">Description de l'accompagnement</label>
+                <textarea
+                  value={targetForm.description}
+                  onChange={(e) => setTargetForm({ ...targetForm, description: e.target.value })}
+                  placeholder="Ex: Développez votre visibilité et votre autorité sectorielle..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold min-h-20"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground">Texte du bouton d'action</label>
+                <input
+                  type="text"
+                  value={targetForm.ctaText || ""}
+                  onChange={(e) => setTargetForm({ ...targetForm, ctaText: e.target.value })}
+                  placeholder="Ex: Être interviewé, Mettre en avant mon entreprise, En savoir plus..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 pt-2 cursor-pointer border-t border-border/50">
+                <input
+                  type="checkbox"
+                  checked={targetForm.is_active !== false}
+                  onChange={(e) => setTargetForm({ ...targetForm, is_active: e.target.checked })}
+                  className="size-4 accent-[var(--gold)]"
+                />
+                <span className="font-medium text-foreground">Afficher cette cible sur la landing page</span>
+              </label>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setTargetModalOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" variant="editorial" size="sm">
+                  {editingTarget ? "Sauvegarder la cible" : "Créer la cible"}
                 </Button>
               </div>
             </form>

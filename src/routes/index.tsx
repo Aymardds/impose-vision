@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight,
   Facebook, Instagram, Linkedin, Mail, Menu, Phone, X, Star, Zap, TrendingUp, Globe,
-  Eye, Clock, Sparkles, Plus, CheckCircle2, FileText, SlidersHorizontal, ExternalLink
+  Eye, Clock, Sparkles, Plus, CheckCircle2, FileText, SlidersHorizontal, ExternalLink,
+  ShieldCheck, BarChart3, Users, Share2, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,7 +13,9 @@ import { getSupabase } from "@/lib/supabase";
 import { useDynamicData } from "@/hooks/useDynamicData";
 import {
   magazineIssues, objectives, packages, availablePrestations, sortCoversChronological,
-  type MagazineIssue, type PackageOption, type ServicePrestation, type PartnerItem, type MetricItem
+  initialAudienceChannels, initialTargetAudiences,
+  type MagazineIssue, type PackageOption, type ServicePrestation, type PartnerItem, type MetricItem,
+  type AudienceChannel, type TargetAudience
 } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 import partner1 from "@/assets/landingImage/PartenaireImpose1.png";
@@ -238,9 +241,9 @@ function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const links = [
-    ["Accueil", "#accueil"], ["Le Magazine", "#magazine"], ["Nos éditions", "#editions"],
-    ["Partenaires", "#partenaires"], ["Prestations & Devis", "#offres"], ["À propos", "#apropos"],
-    ["FAQ", "#faq"], ["Contact", "#contact"]
+    ["Le Magazine", "#magazine"], ["Nos éditions", "#editions"],
+    ["Audience", "#audience"], ["Prestations", "#offres"],
+    ["FAQ", "#faq"]
   ];
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -301,6 +304,7 @@ function HeroCoverShowcase({
 
   const total = sortedIssues.length;
   const current = sortedIssues[active] || sortedIssues[0];
+  if (!current) return null;
 
   const next = useCallback(() => {
     setActive((prev) => (prev + 1) % total);
@@ -377,11 +381,10 @@ function HeroCoverShowcase({
           {/* Top Bar Badges */}
           <div className="absolute inset-x-0 top-3.5 sm:top-5 flex items-center justify-between px-4 sm:px-6 z-30">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-xl backdrop-blur-md border ${
-                active === 0
-                  ? "bg-ember text-white border-ember/50"
-                  : "bg-black/70 text-white border-white/20"
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider shadow-xl backdrop-blur-md border ${active === 0
+                ? "bg-ember text-white border-ember/50"
+                : "bg-black/70 text-white border-white/20"
+                }`}
             >
               <span className={`size-1.5 rounded-full ${active === 0 ? "bg-white animate-ping" : "bg-gold"}`} />
               {active === 0 ? "Dernière parution" : "100% Digital"}
@@ -485,11 +488,10 @@ function HeroCoverShowcase({
               key={item.id}
               type="button"
               onClick={() => goTo(idx)}
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase transition-all duration-300 ${
-                idx === active
-                  ? "bg-ember text-white shadow-md scale-105"
-                  : "bg-foreground/10 hover:bg-foreground/20 text-foreground/75"
-              }`}
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase transition-all duration-300 ${idx === active
+                ? "bg-ember text-white shadow-md scale-105"
+                : "bg-foreground/10 hover:bg-foreground/20 text-foreground/75"
+                }`}
             >
               {item.number}
             </button>
@@ -530,10 +532,10 @@ function Hero({
   };
   const currentStats = (metricItems && metricItems.length > 0)
     ? metricItems.map(m => ({
-        icon: iconMap[m.iconName] || Star,
-        value: m.value,
-        label: m.label,
-      }))
+      icon: iconMap[m.iconName] || Star,
+      value: m.value,
+      label: m.label,
+    }))
     : stats;
 
   return (
@@ -553,15 +555,13 @@ function Hero({
             </span>
           </div>
           <h1 className="reveal-two mt-6 max-w-2xl font-display text-5xl font-medium leading-[.94] sm:text-6xl lg:text-[5.25rem] xl:text-[5.75rem]">
-            Les histoires qui façonnent{" "}
-            <em className="italic text-ember">l'Afrique.</em>
+            Faites rayonner votre marque auprès de{" "}
+            <em className="italic text-ember">+ 500 milles décideurs.</em>
           </h1>
           <p className="reveal-three mt-6 font-display text-2xl text-foreground font-semibold italic">
-            « Imposez votre identité »
+
           </p>
-          <p className="reveal-three mt-3 max-w-xl text-base leading-7 text-muted-foreground lg:text-lg">
-            IMPOSE est le magazine 100% digital qui met en lumière les entrepreneurs, dirigeants, innovateurs et institutions qui transforment l'Afrique et construisent les succès de demain.
-          </p>
+
           <div className="reveal-three mt-9 flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="editorial" size="xl" onClick={() => track("hero_cta_click", { target: "packages" })}>
               <a href="#offres">Découvrir les prestations <ArrowDown /></a>
@@ -1042,22 +1042,20 @@ function PackagesSection({
             <button
               type="button"
               onClick={() => setActiveTab("formulas")}
-              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-                activeTab === "formulas"
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === "formulas"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               Formules recommandées
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("alacarte")}
-              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 ${
-                activeTab === "alacarte"
-                  ? "bg-gold text-gold-foreground shadow-md"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 ${activeTab === "alacarte"
+                ? "bg-gold text-gold-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               <SlidersHorizontal className="size-3.5" />
               Prestations à la carte
@@ -1077,11 +1075,10 @@ function PackagesSection({
               {packages.map((pkg) => (
                 <article
                   key={pkg.id}
-                  className={`relative flex flex-col border p-6 transition-all duration-300 hover:-translate-y-1.5 rounded-sm ${
-                    pkg.featured
-                      ? "border-gold bg-primary text-primary-foreground shadow-gold"
-                      : "border-foreground/15 bg-card hover:border-gold/50 shadow-sm"
-                  }`}
+                  className={`relative flex flex-col border p-6 transition-all duration-300 hover:-translate-y-1.5 rounded-sm ${pkg.featured
+                    ? "border-gold bg-primary text-primary-foreground shadow-gold"
+                    : "border-foreground/15 bg-card hover:border-gold/50 shadow-sm"
+                    }`}
                 >
                   {pkg.badge && (
                     <span className="absolute right-4 top-0 -translate-y-1/2 bg-gold px-3 py-1 text-[9px] font-extrabold uppercase tracking-wider text-gold-foreground shadow-md">
@@ -1093,21 +1090,20 @@ function PackagesSection({
                   {/* Devis Indicator */}
                   <div className="mt-5 mb-1 flex flex-col gap-1">
                     <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold border border-gold/30">
-                      <Sparkles className="size-3" /> Sur devis personnalisé
+                      <Sparkles className="size-3" />
+                      {pkg.id === "discovery" ? "À partir de 150 000 FCFA" : "Sur devis personnalisé"}
                     </span>
                     <span
-                      className={`text-[11px] font-medium ${
-                        pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
-                      }`}
+                      className={`text-[11px] font-medium ${pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
+                        }`}
                     >
                       {pkg.tagline}
                     </span>
                   </div>
 
                   <p
-                    className={`mt-4 min-h-16 text-xs sm:text-sm leading-relaxed ${
-                      pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
-                    }`}
+                    className={`mt-4 min-h-16 text-xs sm:text-sm leading-relaxed ${pkg.featured ? "text-primary-foreground/75" : "text-muted-foreground"
+                      }`}
                   >
                     {pkg.description}
                   </p>
@@ -1186,11 +1182,10 @@ function PackagesSection({
                   key={c.id}
                   type="button"
                   onClick={() => setActiveCategory(c.id)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                    activeCategory === c.id
-                      ? "bg-ember text-white shadow-sm"
-                      : "bg-card border border-foreground/15 text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${activeCategory === c.id
+                    ? "bg-ember text-white shadow-sm"
+                    : "bg-card border border-foreground/15 text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {c.label}
                 </button>
@@ -1205,11 +1200,10 @@ function PackagesSection({
                   <div
                     key={p.id}
                     onClick={() => toggleService(p.name)}
-                    className={`relative p-5 rounded-sm border cursor-pointer transition-all duration-300 flex flex-col justify-between ${
-                      isSelected
-                        ? "border-gold bg-gold/5 shadow-md ring-1 ring-gold/40"
-                        : "border-foreground/15 bg-card hover:border-gold/40 hover:bg-muted/20"
-                    }`}
+                    className={`relative p-5 rounded-sm border cursor-pointer transition-all duration-300 flex flex-col justify-between ${isSelected
+                      ? "border-gold bg-gold/5 shadow-md ring-1 ring-gold/40"
+                      : "border-foreground/15 bg-card hover:border-gold/40 hover:bg-muted/20"
+                      }`}
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3 mb-2">
@@ -1223,9 +1217,8 @@ function PackagesSection({
                             </span>
                           )}
                           <div
-                            className={`size-5 rounded-full flex items-center justify-center transition-colors ${
-                              isSelected ? "bg-gold text-gold-foreground" : "border border-foreground/30"
-                            }`}
+                            className={`size-5 rounded-full flex items-center justify-center transition-colors ${isSelected ? "bg-gold text-gold-foreground" : "border border-foreground/30"
+                              }`}
                           >
                             {isSelected && <Check className="size-3 stroke-[3]" />}
                           </div>
@@ -1293,32 +1286,182 @@ const audiences = [
   ["Experts & dirigeants", "Construisez votre autorité et votre influence sectorielle.", "Valoriser mon parcours"],
 ];
 
-function AudienceSection() {
+function LinkedInPlatformLogo({ className = "size-7 sm:size-9" }: { className?: string }) {
   return (
-    <section className="relative overflow-hidden bg-primary py-20 text-primary-foreground lg:py-28">
-      <div className="pointer-events-none absolute left-0 top-0 h-72 w-72 rounded-full bg-ember/10 blur-3xl" />
-      <div className="mx-auto max-w-7xl px-5 lg:px-8">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gold">Pour qui ?</p>
-        <h2 className="mt-4 max-w-4xl font-display text-4xl sm:text-6xl">IMPOSE accompagne ceux qui font bouger les lignes.</h2>
-        <div className="mt-12 grid gap-px bg-primary-foreground/15 md:grid-cols-2 lg:grid-cols-3">
-          {audiences.map(([title, text]) => (
-            <article key={title} className="group bg-primary p-8 transition-colors hover:bg-primary-foreground/5">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gold">{title}</h3>
-              <p className="mt-5 max-w-xs font-display text-2xl leading-snug">{text}</p>
-              <a href="#contact" className="mt-8 inline-flex items-center gap-2 text-xs font-semibold text-primary-foreground/60 transition-colors hover:text-primary-foreground group-hover:gap-3 duration-300">
-                En savoir plus <ArrowRight className="size-4" />
-              </a>
-            </article>
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="LinkedIn">
+      <rect width="24" height="24" rx="4" fill="#0A66C2" />
+      <path
+        d="M7.12 18.5H4.2V9.17h2.92v9.33ZM5.66 7.89a1.69 1.69 0 1 1 0-3.38 1.69 1.69 0 0 1 0 3.38ZM19.8 18.5h-2.92v-4.57c0-1.09-.02-2.5-1.52-2.5-1.53 0-1.76 1.19-1.76 2.42v4.65h-2.92V9.17h2.8v1.27h.04c.39-.74 1.34-1.52 2.76-1.52 2.96 0 3.5 1.95 3.5 4.48v5.1Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+function FacebookPlatformLogo({ className = "size-7 sm:size-9" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Facebook">
+      <circle cx="12" cy="12" r="12" fill="#1877F2" />
+      <path
+        d="M15.5 12.05h-2.35v8.72h-3.6v-8.72H7.72V9.01h1.83V6.83c0-2.42 1.48-3.74 3.64-3.74 1.03 0 2.12.18 2.12.18v2.33h-1.2c-1.2 0-1.57.74-1.57 1.51v1.9h2.63l-.42 3.04H15.5Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+function WebPlatformLogo({ className = "size-7 sm:size-9" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-label="Site Web & Google Analytics">
+      <rect width="24" height="24" rx="4" fill="#0F172A" stroke="rgba(212,175,55,0.4)" strokeWidth="1" />
+      <rect x="5.5" y="13" width="3" height="6.5" rx="1.5" fill="#F59E0B" />
+      <rect x="10.5" y="8" width="3" height="11.5" rx="1.5" fill="#D97706" />
+      <rect x="15.5" y="4.5" width="3" height="15" rx="1.5" fill="#EF4444" />
+    </svg>
+  );
+}
+
+function renderChannelIcon(iconName?: string, channelId?: string, className?: string) {
+  const cName = className || "size-6 sm:size-8";
+  const id = (channelId || "").toLowerCase();
+  const icon = (iconName || "").toLowerCase();
+
+  if (id.includes("linkedin") || icon.includes("linkedin")) {
+    return <LinkedInPlatformLogo className={cName} />;
+  }
+  if (id.includes("facebook") || icon.includes("facebook")) {
+    return <FacebookPlatformLogo className={cName} />;
+  }
+  if (id.includes("web") || id.includes("site") || icon.includes("globe")) {
+    return <WebPlatformLogo className={cName} />;
+  }
+  return <BarChart3 className={cName} />;
+}
+
+function getPlatformDisplayName(name: string) {
+  if (name === "Site Web & Éditions Digitales") return "Site Web";
+  if (name === "LinkedIn B2B Exécutif") return "LinkedIn";
+  if (name === "Facebook & Formats Visuels") return "Facebook";
+  return name;
+}
+
+function AudienceSection({
+  items,
+  targetItems,
+}: {
+  items?: AudienceChannel[] | undefined;
+  targetItems?: TargetAudience[] | undefined;
+}) {
+  const activeChannels = (items && items.length > 0 ? items : initialAudienceChannels).filter(
+    (c) => c.is_active !== false
+  );
+  const activeTargets = (targetItems && targetItems.length > 0 ? targetItems : initialTargetAudiences).filter(
+    (t) => t.is_active !== false
+  );
+
+  return (
+    <section id="audience" className="relative overflow-hidden bg-primary py-16 sm:py-20 text-primary-foreground lg:py-24 scroll-mt-20">
+      {/* Ambient glow */}
+      <div className="pointer-events-none absolute -left-20 top-1/3 h-80 w-80 rounded-full bg-ember/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 bottom-1/3 h-80 w-80 rounded-full bg-gold/10 blur-3xl" />
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-widest text-gold shadow-sm">
+            <ShieldCheck className="size-3.5 text-gold" />
+            Portée certifiée · Données réelles
+          </div>
+          <h2 className="mt-4 font-display text-3xl sm:text-4xl lg:text-5xl tracking-tight leading-tight">
+            Une audience qualifiée sur 3 canaux.
+          </h2>
+          <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-primary-foreground/65 leading-relaxed">
+            Indicateurs d'engagement mesurés et certifiés sur le Web, LinkedIn et Facebook.
+          </p>
+        </div>
+
+        {/* 1-line, 3-column platform row */}
+        <div className="mt-8 sm:mt-12 grid grid-cols-3 gap-2 sm:gap-5 lg:gap-6">
+          {activeChannels.slice(0, 3).map((channel) => (
+            <div
+              key={channel.id}
+              className="group relative flex flex-col items-center justify-between rounded-xl sm:rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-6 lg:p-7 text-center backdrop-blur-sm transition-all duration-300 hover:border-gold/50 hover:bg-white/[0.08] hover:shadow-xl hover:shadow-gold/5"
+            >
+              {/* Platform Logo */}
+              <div className="flex size-11 sm:size-14 items-center justify-center rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
+                {renderChannelIcon(channel.iconName, channel.id, "size-6 sm:size-8")}
+              </div>
+
+              {/* Platform Name */}
+              <p className="mt-2.5 sm:mt-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gold/90 truncate max-w-full">
+                {getPlatformDisplayName(channel.name)}
+              </p>
+
+              {/* Primary Stat */}
+              <p className="mt-1 sm:mt-2 font-display text-lg sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+                {channel.primaryStat?.value}
+              </p>
+
+              {/* Stat Label */}
+              <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-primary-foreground/65 font-medium line-clamp-1">
+                {channel.primaryStat?.label}
+              </p>
+
+              {/* Highlight badge */}
+              {channel.highlightBadge && (
+                <div className="mt-2 sm:mt-3">
+                  <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-2 sm:px-3 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-gold">
+                    {channel.highlightBadge}
+                  </span>
+                </div>
+              )}
+            </div>
           ))}
+        </div>
+
+        {/* CTA row */}
+        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          <Button asChild variant="editorial" size="lg" className="shadow-lg font-bold w-full sm:w-auto">
+            <a href="#contact">Demander un devis annonceur</a>
+          </Button>
+          <Button asChild variant="editorialOutline" size="lg" className="border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
+            <a href="#offres">Voir les prestations</a>
+          </Button>
+        </div>
+
+        {/* Target personas: Pour qui ? */}
+        <div className="mt-20 border-t border-white/10 pt-16">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gold font-mono">Cibles & Acteurs</p>
+          <h3 className="mt-3 max-w-4xl font-display text-3xl sm:text-5xl text-white">
+            IMPOSE accompagne ceux qui font bouger les lignes.
+          </h3>
+          <p className="mt-3 max-w-2xl text-xs sm:text-sm text-primary-foreground/70">
+            Quels que soient votre taille et votre secteur, nos formats éditoriaux et notre portée sont conçus pour asseoir votre autorité.
+          </p>
+          <div className="mt-10 grid gap-px bg-white/15 md:grid-cols-2 lg:grid-cols-3 rounded-lg overflow-hidden border border-white/15">
+            {activeTargets.map((target) => (
+              <article key={target.id || target.title} className="group bg-primary p-7 sm:p-8 transition-colors hover:bg-white/[0.06]">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-gold">{target.title}</h4>
+                <p className="mt-4 max-w-xs font-display text-xl sm:text-2xl leading-snug text-white/95">{target.description}</p>
+                <a
+                  href="#contact"
+                  className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-primary-foreground/60 transition-colors hover:text-gold group-hover:gap-3 duration-300"
+                >
+                  {target.ctaText || "En savoir plus"} <ArrowRight className="size-4" />
+                </a>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
+
 const steps = [
   ["Échange", "Vous nous présentez votre entreprise, votre parcours ou votre projet en quelques minutes."],
-  ["Sélection", "Notre équipe éditoriale identifie le format le plus adapté à votre histoire et vos objectifs."],
+  ["Sélection", "Notre équipe éditoriale identifie le format le plus adapté à vos objectifs. Chaque partenariat éditorial est clairement identifié comme contenu sponsoré conformément à nos standards de transparence."],
   ["Production", "Notre équipe prépare les contenus, éléments visuels et supports de diffusion."],
   ["Publication", "Votre histoire est publiée et relayée sur tous les canaux IMPOSE."],
 ];
@@ -1372,9 +1515,8 @@ function FaqSection() {
                 >
                   <span>{faq.q}</span>
                   <ChevronRight
-                    className={`size-5 text-gold shrink-0 transition-transform duration-300 ${
-                      isOpen ? "rotate-90" : ""
-                    }`}
+                    className={`size-5 text-gold shrink-0 transition-transform duration-300 ${isOpen ? "rotate-90" : ""
+                      }`}
                   />
                 </button>
                 {isOpen && (
@@ -1534,8 +1676,8 @@ function ContactForm({
   const defaultPackageValue = selectedPrestations.length > 0
     ? `Prestations à la carte (${selectedPrestations.length} sélectionnée${selectedPrestations.length > 1 ? "s" : ""})`
     : selected
-    ? `Formule ${selected.name} (Sur devis)`
-    : "";
+      ? `Formule ${selected.name} (Sur devis)`
+      : "";
 
   return (
     <form
@@ -1624,7 +1766,7 @@ function ContactForm({
       <input className={field} name="phone" type="tel" placeholder="Téléphone / WhatsApp *" required disabled={loading} autoComplete="tel" aria-label="Téléphone ou WhatsApp" />
       <input className={field} name="country" placeholder="Pays (ex: Côte d'Ivoire, Sénégal, France...) *" required disabled={loading} autoComplete="country-name" aria-label="Pays" />
       <input className={field} name="sector" placeholder="Secteur d'activité *" required disabled={loading} aria-label="Secteur d'activité" />
-      
+
       <select className={field} name="objective" defaultValue="" required disabled={loading}>
         <option value="" disabled>Votre objectif prioritaire *</option>
         {objectives.map(o => <option key={o} value={o}>{o}</option>)}
@@ -1808,10 +1950,12 @@ function Footer() {
         <div className="flex flex-col gap-4 pt-7 text-xs text-primary-foreground/40 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 IMPOSE Magazine. Tous droits réservés.</p>
           <div className="flex flex-wrap gap-5 items-center">
-            <a href="#" className="hover:text-primary-foreground/70 transition-colors">Mentions légales</a>
-            <a href="#" className="hover:text-primary-foreground/70 transition-colors">Politique de confidentialité</a>
-            <a href="#" className="hover:text-primary-foreground/70 transition-colors">Conditions générales</a>
-            <a href="/admin" className="text-primary-foreground/40 hover:text-gold transition-colors text-[11px] font-medium">Administration</a>
+            <a href="/mentions-legales" className="hover:text-primary-foreground/70 transition-colors">Mentions légales</a>
+            <a href="/confidentialite" className="hover:text-primary-foreground/70 transition-colors">Politique de confidentialité</a>
+            <a href="/cgv" className="hover:text-primary-foreground/70 transition-colors">Conditions générales</a>
+            <a href="/admin" className="text-primary-foreground/35 hover:text-gold transition-colors inline-flex items-center gap-1.5 ml-auto text-xs">
+              <Lock className="size-3" /> Espace Admin
+            </a>
           </div>
         </div>
       </div>
@@ -1820,7 +1964,7 @@ function Footer() {
 }
 
 function Index() {
-  const { covers, partners, metrics } = useDynamicData();
+  const { covers, partners, metrics, audience, targetAudiences } = useDynamicData();
   const sortedCovers = sortCoversChronological(covers, "desc");
   const [selected, setSelected] = useState<PackageOption | null>(null);
   const [selectedPrestations, setSelectedPrestations] = useState<string[]>([]);
@@ -1853,12 +1997,12 @@ function Index() {
         <AboutSection />
         <MagazineGallery onSelect={setModalCover} items={sortedCovers} />
         <BenefitsSection />
+        <AudienceSection items={audience} targetItems={targetAudiences} />
         <PackagesSection
           onSelectPackage={choosePackage}
           onSelectPrestations={choosePrestations}
           selectedPrestations={selectedPrestations}
         />
-        <AudienceSection />
         <PartnersSection items={partners} />
         <ProcessSection />
         <FaqSection />
