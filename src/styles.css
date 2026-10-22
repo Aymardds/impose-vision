@@ -64,10 +64,11 @@
   --color-ember: var(--ember);
   --color-paper: var(--paper);
   --color-ink-soft: var(--ink-soft);
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --shadow-editorial: 0 18px 45px -24px color-mix(in oklab, var(--foreground) 45%, transparent);
-  --shadow-gold: 0 18px 45px -22px color-mix(in oklab, var(--gold) 70%, transparent);
+  --shadow-gold: 0 14px 34px -18px rgba(0, 0, 0, 0.28);
 }
 
 :root {
@@ -160,11 +161,12 @@
   }
   html { scroll-behavior: smooth; }
   h1, h2, h3 { letter-spacing: 0; }
+  h2 { font-weight: 700; }
   ::selection { background: var(--gold); color: var(--gold-foreground); }
 }
 
 @utility hero-sunrise {
-  background: radial-gradient(100% 100% at 85% 0%, color-mix(in oklab, var(--gold) 38%, transparent), transparent 58%), radial-gradient(80% 70% at 5% 5%, color-mix(in oklab, var(--ember) 22%, transparent), transparent 62%), var(--background);
+  background-color: var(--background);
 }
 
 @utility editorial-rule { border-top: 1px solid color-mix(in oklab, var(--foreground) 18%, transparent); }

@@ -73,6 +73,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Joseph-Olivier Biley — Co-Founder & CEO, Jool International. 125 Millions de dollars ATIDI pour l'investissement en Afrique.",
     person: "Joseph-Olivier Biley",
     featured: true,
+    link: "https://impose-ci.com/bad-atidi-un-investissement-de-125-millions-de-dollars-pour-reduire-le-risque-africain-et-liberer-les-capitaux-prives/finance/",
   },
   {
     id: 30,
@@ -83,6 +84,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Alex Zan Bi — Entrepreneur Digital & Créateur de Contenu (+300k abonnés). Fondateur Lewa Space & Cofondateur GetMedford.",
     person: "Alex Zan Bi",
     featured: true,
+    link: "https://impose-ci.com/le-digital-nest-plus-une-option-il-redefinit-les-regles-de-la-performance/le-mensuel/",
   },
   {
     id: 29,
@@ -93,6 +95,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Inclusion financière, données et éducation financière : une nouvelle approche pour rendre les micro-entrepreneurs visibles et finançables. 1,7 Milliard FCFA dans l'UEMOA.",
     person: "Moro Application",
     featured: true,
+    link: "https://impose-ci.com/uemoa-17-milliard-fcfa-pour-preparer-les-pme-ouest-africaines-au-marche-continental/economie/",
   },
   {
     id: 28,
@@ -103,6 +106,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Gwladys Alahassa — Directrice Générale Qotto Bénin. Elles déplacent les lignes : le nouveau pouvoir féminin de l'innovation.",
     person: "Gwladys Alahassa",
     featured: true,
+    link: "https://impose-ci.com/decouvrez-abh-2026-top-20-finalists/evenement/",
   },
   {
     id: 27,
@@ -113,6 +117,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "El Hadji Ndoye — Expert en Personal Branding pour Entrepreneurs & CEOs. Le CEO qui façonne les leaders de demain. Africa's Business Heroes 2026.",
     person: "El Hadji Ndoye",
     featured: true,
+    link: "https://impose-ci.com/reseaux-sociaux-et-personal-branding/le-mensuel/",
   },
   {
     id: 26,
@@ -123,6 +128,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Mohamed Aly Diabaté — Filmmaker, Photojournalist & Manager Visualis Africa. 29 500 Milliards USD de richesses minières & Initiative IA Bill Gates / OpenAI.",
     person: "Mohamed Aly Diabaté",
     featured: true,
+    link: "https://impose-ci.com/boost-africa-la-bad-mise-sur-lentrepreneuriat-pour-transformer-le-continent/entrepreneuriat/",
   },
   {
     id: 25,
@@ -133,6 +139,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Jonathan Ouedraogo — Banque et Ingénierie Financière, Expert E-commerce. SEDAP & Programme TEF.",
     person: "Jonathan Ouedraogo",
     featured: false,
+    link: "https://impose-ci.com/la-bad-a-lheure-des-choix-pourquoi-les-talents-africains-de-la-finance-mondiale-deviennent-un-levier-strategique/finance/",
   },
   {
     id: 24,
@@ -143,6 +150,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Florence Eba — Snr Consultant & Director at Venture Konect. Le Sénégal soutient la Banque Africaine de l'Énergie.",
     person: "Florence Eba",
     featured: false,
+    link: "https://impose-ci.com/top-100-afrique-2026-les-startups-qui-redessinent-lavenir-economique-du-continent/entrepreneuriat/",
   },
   {
     id: 23,
@@ -153,6 +161,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Alexia Amicha — Sous-directrice du Développement de l'Entrepreneuriat et des Startups Technologiques.",
     person: "Alexia Amicha",
     featured: false,
+    link: "https://impose-ci.com/category/le-mensuel/",
   },
   {
     id: 22,
@@ -163,8 +172,8 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Deborah Gael — Co-Founder and COO of Koolboks. Réfrigération solaire et accélération des énergies durables.",
     person: "Deborah Gael",
     featured: false,
+    link: "https://impose-ci.com/category/le-mensuel/",
   },
-
   {
     id: 21,
     number: "N°21",
@@ -174,6 +183,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Alex Degny — Président du CI20. 20 startups numériques représentent la Côte d'Ivoire à l'international.",
     person: "Alex Degny",
     featured: false,
+    link: "https://impose-ci.com/category/le-mensuel/",
   },
   {
     id: 20,
@@ -184,6 +194,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Régis Zagbadi — Expert Risques & Compliance FinTech UEMOA | Fondateur IZAQA. Bientôt les paiements instantanés pour tous, Mobile Money et PI-SPI.",
     person: "Régis Zagbadi",
     featured: true,
+    link: "https://impose-ci.com/category/fintech/",
   },
   {
     id: 19,
@@ -194,6 +205,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Olatidoye Iburaim Olaniyi (Grouilleur 3.0) — Photographe professionnel. Prix Pierre Castel 2025 : « DJOLI » sacré vainqueur. Le champ du producteur devient notre frigo.",
     person: "Olatidoye Iburaim Olaniyi (Grouilleur 3.0)",
     featured: false,
+    link: "https://impose-ci.com/category/culture/",
   },
   {
     id: 18,
@@ -204,6 +216,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Wilfried Adingra — Founder & CEO at GLSAfrica. Avec plus de 50 Millions de FCFA préparez l'avenir, incubez l'innovation & Un bond en avant dans l'IA.",
     person: "Wilfried Adingra",
     featured: false,
+    link: "https://impose-ci.com/category/entrepreneuriat/",
   },
   {
     id: 17,
@@ -214,6 +227,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Daniel Oulaï — PDG de la GRAINOTECH SAS, entrepreneur social engagé. +7000 inscrits en 2025 dont 55% venus de l'étranger & Google s'associe à des acteurs tech africains.",
     person: "Daniel Oulaï",
     featured: false,
+    link: "https://impose-ci.com/category/agriculture/",
   },
   {
     id: 16,
@@ -224,6 +238,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Charlène Danon — Journaliste, scénariste-productrice et écrivaine. Financement : 49 jeunes bénéficient de 36 millions à Gagnoa & Gérez votre projet avec MORO.",
     person: "Charlène Danon",
     featured: false,
+    link: "https://impose-ci.com/category/culture/",
   },
   {
     id: 15,
@@ -234,6 +249,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Mylène Amon (Paper-artist) & Charlène Valmorin (My Place Events & AbidjanaisesInTech). L'IA Africaine anti-fake news & 4 Startups fintech accompagnées.",
     person: "Mylène Amon & Charlène Valmorin",
     featured: false,
+    link: "https://impose-ci.com/category/leadership-feminin/",
   },
   {
     id: 14,
@@ -244,6 +260,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Assalé Tiémoko — Député-Maire de Tiassalé et Président de mouvement ADCI. CI20 MEETUP : Un tournant décisif pour les startups ivoiriennes.",
     person: "Assalé Tiémoko",
     featured: false,
+    link: "https://impose-ci.com/category/politique/",
   },
   {
     id: 12,
@@ -254,6 +271,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Israël Guébo — Vice-Président ADCI, Consultant en communication et médias. 20 Jeunes entrepreneurs en Corée du Sud & Sommet SACH 2025.",
     person: "Israël Guébo",
     featured: false,
+    link: "https://impose-ci.com/category/innovation/",
   },
   {
     id: 11,
@@ -264,6 +282,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Stéphane Bolou — Délégué Exécutif #Ci20 | Directeur Fund Management du Fonds Startup Boost Capital.",
     person: "Stéphane Bolou",
     featured: false,
+    link: "https://impose-ci.com/category/financement/",
   },
   {
     id: 10,
@@ -274,6 +293,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Olga Djadji — Présidente de la Fondation BKD (Bénédicte Janine Kacou Diagou). Impacter un million de jeunes.",
     person: "Olga Djadji",
     featured: false,
+    link: "https://impose-ci.com/category/le-mensuel/",
   },
   {
     id: 7,
@@ -284,6 +304,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Polus Agathon — Spécialiste en Communication Digitale, Formateur certifié Méta.",
     person: "Polus Agathon",
     featured: false,
+    link: "https://impose-ci.com/category/technologies/",
   },
   {
     id: 6,
@@ -294,6 +315,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Axelle Aurore — Choisir de vivre selon ses passions est un passeport pour la réussite ! #Mentorat (Re)Orientation Professionnelle.",
     person: "Axelle Aurore",
     featured: false,
+    link: "https://impose-ci.com/category/le-mensuel/",
   },
   {
     id: 3,
@@ -304,6 +326,7 @@ export const magazineIssues: MagazineIssue[] = [
     description: "Jemima Kessie — Nouvelle génération de communicants en faveur des bonnes conditions des femmes.",
     person: "Jemima Kessie",
     featured: false,
+    link: "https://impose-ci.com/category/leadership-feminin/",
   },
 ];
 

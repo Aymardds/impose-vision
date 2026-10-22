@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import {
   ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronLeft, ChevronRight,
   Facebook, Instagram, Linkedin, Mail, Menu, Phone, X, Star, Zap, TrendingUp, Globe,
-  Eye, Clock, Sparkles, Plus, CheckCircle2, FileText, SlidersHorizontal, ExternalLink,
+  Eye, Clock, Award, Plus, CheckCircle2, FileText, SlidersHorizontal, ExternalLink,
   ShieldCheck, BarChart3, Users, Share2, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -338,9 +338,6 @@ function HeroCoverShowcase({
     return () => clearInterval(interval);
   }, [isPaused, total]);
 
-  // Quick jump pill editions (first 7 chronologically)
-  const quickPills = sortedIssues.slice(0, 7);
-
   return (
     <div
       className="relative flex flex-col items-center justify-center w-full group select-none py-2"
@@ -349,25 +346,23 @@ function HeroCoverShowcase({
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Radiant ambient backlight glow */}
-      <div className="pointer-events-none absolute -inset-6 sm:-inset-12 -z-10 rounded-full bg-gradient-to-tr from-ember/25 via-gold/20 to-transparent blur-3xl opacity-80" />
-
       {/* Main Cover Stage (Clean Flat & Imposing Big Size) */}
       <div className="relative w-full flex items-center justify-center py-2 sm:py-4">
         {/* Central Active Cover — Big Size & Imposing Prestige Finish */}
         <div
           onClick={() => {
-            if (current && onSelect) onSelect(current);
+            const url = current.link || "https://impose-ci.com/category/le-mensuel/";
+            window.open(url, "_blank", "noopener,noreferrer");
           }}
-          className="relative z-20 w-[84vw] max-w-[340px] xs:max-w-[380px] sm:max-w-[430px] md:max-w-[460px] lg:max-w-[490px] xl:max-w-[530px] rounded-xl overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:shadow-[0_25px_60px_-15px_rgba(245,158,11,0.25)] border border-white/20 ring-1 ring-gold/30 hover:ring-gold/60"
+          className="relative z-20 w-[84vw] max-w-[340px] xs:max-w-[380px] sm:max-w-[430px] md:max-w-[460px] lg:max-w-[490px] xl:max-w-[530px] rounded-xl overflow-hidden cursor-pointer shadow-2xl transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] hover:scale-[1.01] border border-black/10 dark:border-white/15"
           style={{ aspectRatio: "711 / 1084" }}
-          aria-label={`Édition ${current.number} : ${current.title} — Cliquer pour agrandir`}
+          aria-label={`Édition ${current.number}`}
         >
           {/* Current Cover Image */}
           <img
             key={current.id}
             src={current.image}
-            alt={`Couverture IMPOSE ${current.number} : ${current.title}`}
+            alt={`Couverture IMPOSE ${current.number}`}
             className="w-full h-full object-cover transition-opacity duration-500"
             loading="eager"
             fetchPriority="high"
@@ -375,9 +370,6 @@ function HeroCoverShowcase({
             width={711}
             height={1084}
           />
-
-          {/* Scrim gradient top and bottom for readability */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/25 to-black/60 z-20" />
 
           {/* Top Bar Badges */}
           <div className="absolute inset-x-0 top-3.5 sm:top-5 flex items-center justify-between px-4 sm:px-6 z-30">
@@ -387,57 +379,12 @@ function HeroCoverShowcase({
                 : "bg-black/70 text-white border-white/20"
                 }`}
             >
-              <span className={`size-1.5 rounded-full ${active === 0 ? "bg-white animate-ping" : "bg-gold"}`} />
+              <span className={`size-1.5 rounded-full ${active === 0 ? "bg-white" : "bg-gold"}`} />
               {active === 0 ? "Dernière parution" : "100% Digital"}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-black/75 backdrop-blur-md border border-gold/40 px-3 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-gold shadow-xl">
               {current.number}
             </span>
-          </div>
-
-          {/* Hover zoom pill badge */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-30">
-            <span className="inline-flex items-center gap-2 rounded-full bg-black/85 backdrop-blur-md border border-gold/50 px-4 py-2 text-xs font-semibold text-gold shadow-2xl">
-              <Eye className="size-4" /> Agrandir la couverture
-            </span>
-          </div>
-
-          {/* Bottom Editorial Plaque */}
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 pt-12 z-30 text-white">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-gold">
-                IMPOSE {current.number} · {current.date.toUpperCase()}
-              </span>
-              <span className="h-1 w-1 rounded-full bg-gold/60" />
-              <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-white/70 font-semibold">
-                N°{active + 1} sur {total}
-              </span>
-            </div>
-            <h3 className="mt-1.5 font-display text-xl sm:text-2xl lg:text-[1.65rem] font-medium leading-tight text-white line-clamp-2">
-              {current.title}
-            </h3>
-            {current.person && current.person !== "Édition spéciale" && (
-              <p className="mt-1.5 text-xs sm:text-sm font-sans text-white/85 line-clamp-1">
-                {current.person}
-              </p>
-            )}
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-gold/90 hover:text-white transition-colors">
-                <span>Détails & parution</span>
-                <ArrowUpRight className="size-3.5" />
-              </div>
-              {current.link && (
-                <a
-                  href={current.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1 rounded-full bg-gold hover:bg-gold/90 text-gold-foreground px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-md transition-all hover:scale-105"
-                >
-                  <ExternalLink className="size-3" /> Lire en ligne
-                </a>
-              )}
-            </div>
           </div>
         </div>
 
@@ -449,7 +396,7 @@ function HeroCoverShowcase({
             prev();
           }}
           className="absolute left-1 xs:left-2 sm:left-4 lg:-left-4 xl:-left-6 top-1/2 -translate-y-1/2 z-30 size-11 sm:size-12 rounded-full bg-black/75 hover:bg-black text-white hover:text-gold border border-white/20 hover:border-gold/60 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group/btn"
-          aria-label="Édition précédente chronologique"
+          aria-label="Édition précédente"
         >
           <ChevronLeft className="size-5 sm:size-6 transition-transform group-hover/btn:-translate-x-0.5" />
         </button>
@@ -461,49 +408,23 @@ function HeroCoverShowcase({
             next();
           }}
           className="absolute right-1 xs:right-2 sm:right-4 lg:-right-4 xl:-right-6 top-1/2 -translate-y-1/2 z-30 size-11 sm:size-12 rounded-full bg-black/75 hover:bg-black text-white hover:text-gold border border-white/20 hover:border-gold/60 backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center group/btn"
-          aria-label="Édition suivante chronologique"
+          aria-label="Édition suivante"
         >
           <ChevronRight className="size-5 sm:size-6 transition-transform group-hover/btn:translate-x-0.5" />
         </button>
       </div>
 
-      {/* Chronological Timeline & Quick Navigation Bar Under the Stage */}
-      <div className="mt-5 w-full max-w-[530px] px-2 flex flex-col gap-2.5">
-        <div className="flex items-center justify-between text-[11px]">
-          <div className="flex items-center gap-2 text-foreground/80 font-bold uppercase tracking-wider text-[10px]">
-            <Clock className="size-3 text-ember" />
-            <span>Ordre chronologique</span>
-            <span className="text-muted-foreground font-normal">
-              ({sortedIssues[0]?.number} → {sortedIssues[sortedIssues.length - 1]?.number})
-            </span>
-          </div>
-          <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
-            {isPaused ? "Pause au survol" : "Défilement auto"} · {active + 1}/{total}
-          </span>
-        </div>
-
-        {/* Quick jump chips for latest editions */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {quickPills.map((item, idx) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => goTo(idx)}
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase transition-all duration-300 ${idx === active
-                ? "bg-ember text-white shadow-md scale-105"
-                : "bg-foreground/10 hover:bg-foreground/20 text-foreground/75"
-                }`}
-            >
-              {item.number}
-            </button>
-          ))}
-          <a
-            href="#editions"
-            className="shrink-0 text-[10px] font-bold uppercase text-ember hover:underline px-2 py-1"
-          >
-            Toutes ({total}) →
-          </a>
-        </div>
+      {/* Action link to read online */}
+      <div className="mt-4 flex items-center justify-center">
+        <a
+          href={current.link || "https://impose-ci.com/category/le-mensuel/"}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 text-xs font-bold uppercase tracking-wider shadow-md transition-all hover:-translate-y-0.5"
+        >
+          <ExternalLink className="size-3.5 text-gold" />
+          <span>Lire l'article en ligne</span>
+        </a>
       </div>
     </div>
   );
@@ -541,21 +462,16 @@ function Hero({
 
   return (
     <section id="accueil" className="hero-sunrise relative overflow-hidden pt-4 pb-12 lg:pt-8 lg:pb-16">
-      {/* Background decorative elements */}
-      <div className="pointer-events-none absolute -right-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-gold/15 blur-3xl" />
-      <div className="pointer-events-none absolute -left-20 bottom-0 h-96 w-96 rounded-full bg-ember/15 blur-3xl" />
-      <div className="pointer-events-none absolute right-[10%] top-1/2 -translate-y-1/2 h-[550px] w-[550px] rounded-full bg-gradient-to-tr from-ember/10 via-gold/10 to-transparent blur-3xl" />
-
       <div className="mx-auto grid min-h-[calc(94vh-4.5rem)] max-w-[1400px] items-center gap-10 px-5 sm:px-8 py-8 lg:grid-cols-[1fr_1.15fr] lg:gap-14 lg:px-10 xl:gap-20">
         {/* Left: Copy */}
         <div className="order-2 lg:order-1">
           <div className="reveal-one flex items-center gap-3">
-            <span className="h-px w-9 bg-ember" />
+
             <span className="text-[10px] font-bold uppercase tracking-widest text-ember">
               Magazine 100% Digital · Imposez votre identité
             </span>
           </div>
-          <h1 className="reveal-two mt-6 max-w-2xl font-display text-5xl font-medium leading-[.94] sm:text-6xl lg:text-[5.25rem] xl:text-[5.75rem]">
+          <h1 className="reveal-two mt-6 max-w-2xl font-display text-5xl font-black leading-[.94] sm:text-6xl lg:text-[5.25rem] xl:text-[5.75rem]">
             Faites rayonner votre marque auprès de{" "}
             <em className="italic text-ember">+ 500 milles décideurs.</em>
           </h1>
@@ -579,7 +495,7 @@ function Hero({
                 <div className="flex items-center gap-2 text-ember">
                   <Icon className="size-3.5" />
                 </div>
-                <p className="mt-1 font-display text-3xl font-medium text-foreground">{value}</p>
+                <p className="mt-1 font-display text-3xl font-extrabold text-foreground">{value}</p>
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
               </div>
             ))}
@@ -603,10 +519,7 @@ function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIss
     <div className="w-full border-y border-foreground/10 bg-card/60 py-5 overflow-hidden backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-5 mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember opacity-75"></span>
-            <span className="relative inline-flex size-2 rounded-full bg-ember"></span>
-          </span>
+          <span className="inline-block size-2 rounded-full bg-ember" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-ember">
             Collection intégrale en ordre chronologique ({sorted.length} parutions · {sorted[0]?.number} à {sorted[sorted.length - 1]?.number})
           </span>
@@ -636,6 +549,15 @@ function CoverMarqueeTicker({ onSelect, items }: { onSelect: (issue: MagazineIss
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-2">
                 <span className="text-[9px] font-extrabold text-gold">{item.number}</span>
                 <span className="text-[9px] font-medium text-white line-clamp-1">{item.person}</span>
+                <a
+                  href={item.link || "https://impose-ci.com/category/le-mensuel/"}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 inline-flex items-center gap-1 text-[8px] font-bold text-gold hover:text-white uppercase transition-colors"
+                >
+                  <ExternalLink className="size-2.5" /> Lire l'article
+                </a>
               </div>
             </div>
           ))}
@@ -731,12 +653,11 @@ const benefits = [
 function AboutSection() {
   return (
     <section id="magazine" className="relative overflow-hidden bg-primary py-20 text-primary-foreground lg:py-28">
-      <div className="pointer-events-none absolute right-0 top-0 h-72 w-72 rounded-full bg-gold/10 blur-3xl" />
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-24">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gold">Le Magazine 100% Digital</p>
-            <h2 className="mt-5 font-display text-4xl leading-tight sm:text-5xl">
+            <h2 className="mt-5 font-display text-4xl font-bold leading-tight sm:text-5xl">
               Plus qu'un magazine.<br />
               <span className="text-gold">« Imposez votre identité »</span> à travers toute l'Afrique.
             </h2>
@@ -805,11 +726,11 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
             <div className="flex items-center gap-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Collection IMPOSE</p>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-ember">
-                <span className="size-1.5 rounded-full bg-ember animate-pulse" />
+                <span className="size-1.5 rounded-full bg-ember" />
                 {sortedIssues.length} Éditions (N°{sortedIssues[0]?.number.replace(/\D/g, '')} → N°{sortedIssues[sortedIssues.length - 1]?.number.replace(/\D/g, '')})
               </span>
             </div>
-            <h2 className="mt-4 font-display text-4xl sm:text-6xl">Nos éditions</h2>
+            <h2 className="mt-4 font-display text-4xl sm:text-6xl font-bold">Nos éditions</h2>
             <p className="mt-4 max-w-2xl text-muted-foreground">
               Découvrez les personnalités, entreprises et histoires qui ont marqué nos éditions, classées par ordre chronologique.
             </p>
@@ -859,21 +780,20 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
                   height={396}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="absolute inset-x-0 top-3 flex items-center justify-between px-3">
+                <div className="absolute inset-x-0 top-3 flex items-center justify-between px-3 z-20">
                   <span className={`rounded-sm px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white ${item.id === 31 ? "bg-gold text-gold-foreground font-extrabold shadow-sm" : "bg-ember"
                     }`}>
                     {item.id === 31 ? "Nouveau · " + item.number : item.number}
                   </span>
-                  {item.featured && item.id !== 31 && (
-                    <span className="rounded-sm bg-black/60 backdrop-blur-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
-                      En vedette
-                    </span>
-                  )}
-                  {item.link && (
-                    <span className="rounded-sm bg-black/70 backdrop-blur-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gold border border-gold/30 flex items-center gap-1">
-                      <ExternalLink className="size-2.5" /> En ligne
-                    </span>
-                  )}
+                  <a
+                    href={item.link || "https://impose-ci.com/category/le-mensuel/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-sm bg-black/80 hover:bg-black px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold hover:text-white border border-gold/40 flex items-center gap-1 transition-colors"
+                  >
+                    <ExternalLink className="size-2.5" /> En ligne
+                  </a>
                 </div>
                 <div className="absolute inset-x-0 bottom-0 translate-y-2 p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                   <p className="font-display text-sm font-medium leading-snug text-white line-clamp-2">{item.title}</p>
@@ -882,10 +802,43 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
               </div>
               <div className="mt-4">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-ember">IMPOSE {item.number} · {item.date}</p>
-                <h3 className="mt-1.5 font-display text-xl leading-snug line-clamp-2">{item.title}</h3>
+                <h3 className="mt-1.5 font-display text-xl leading-snug line-clamp-2 hover:text-ember transition-colors">
+                  <a
+                    href={item.link || "https://impose-ci.com/category/le-mensuel/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="hover:underline"
+                  >
+                    {item.title}
+                  </a>
+                </h3>
                 {item.person !== "Édition spéciale" && (
                   <p className="mt-1 text-xs font-semibold text-muted-foreground line-clamp-1">{item.person}</p>
                 )}
+                <div className="mt-3 flex items-center gap-3">
+                  <a
+                    href={item.link || "https://impose-ci.com/category/le-mensuel/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-ember hover:text-foreground transition-colors"
+                  >
+                    <span>Lire l'article</span>
+                    <ArrowUpRight className="size-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActive(item);
+                      onSelect?.(item);
+                    }}
+                    className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Aperçu
+                  </button>
+                </div>
               </div>
             </article>
           ))}
@@ -927,15 +880,13 @@ function MagazineGallery({ onSelect, items }: { onSelect?: ((issue: MagazineIssu
               <p className="mt-2 font-display text-xl leading-snug">{active.title}</p>
               {active.person !== "Édition spéciale" && <p className="mt-1 text-sm text-white/75">{active.person}</p>}
               {active.description && <p className="mt-2 text-xs text-white/60 leading-relaxed">{active.description}</p>}
-              {active.link && (
-                <div className="mt-4">
-                  <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
-                    <a href={active.link} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="size-3.5" /> Lire le numéro en ligne
-                    </a>
-                  </Button>
-                </div>
-              )}
+              <div className="mt-5">
+                <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
+                  <a href={active.link || "https://impose-ci.com/category/le-mensuel/"} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-3.5" /> Lire l'article complet en ligne
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -956,7 +907,7 @@ function BenefitsSection() {
     <section id="apropos" className="bg-paper py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-ember">La valeur IMPOSE</p>
-        <h2 className="mt-4 max-w-3xl font-display text-4xl sm:text-6xl">Votre histoire mérite d'être vue.</h2>
+        <h2 className="mt-4 max-w-3xl font-display text-4xl sm:text-6xl font-bold">Votre histoire mérite d'être vue.</h2>
         <div className="mt-12 grid gap-px bg-foreground/10 sm:grid-cols-2 lg:grid-cols-4">
           {valueCards.map(([title, text], i) => (
             <article key={title} className="group bg-paper p-8 transition-colors hover:bg-card">
@@ -1029,7 +980,7 @@ function PackagesSection({
           <p className="text-[10px] font-bold uppercase tracking-widest text-ember">
             Prestations & Devis sur-mesure
           </p>
-          <h2 className="mt-4 font-display text-4xl sm:text-6xl font-medium tracking-tight">
+          <h2 className="mt-4 font-display text-4xl sm:text-6xl font-bold tracking-tight">
             Composez votre visibilité dans IMPOSE
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground leading-relaxed">
@@ -1091,7 +1042,7 @@ function PackagesSection({
                   {/* Devis Indicator */}
                   <div className="mt-5 mb-1 flex flex-col gap-1">
                     <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gold border border-gold/30">
-                      <Sparkles className="size-3" />
+                      <Award className="size-3" />
                       {pkg.id === "discovery" ? "À partir de 150 000 FCFA" : "Sur devis personnalisé"}
                     </span>
                     <span
@@ -1159,7 +1110,7 @@ function PackagesSection({
                         </td>
                         <td className="p-4">
                           <span className="inline-flex items-center gap-1 text-gold font-bold text-xs uppercase">
-                            <Sparkles className="size-3" /> Sur devis (24h)
+                            <CheckCircle2 className="size-3" /> Sur devis (24h)
                           </span>
                         </td>
                         <td className="p-4 text-xs text-muted-foreground">{p.features[0]}</td>
@@ -1362,10 +1313,6 @@ function AudienceSection({
 
   return (
     <section id="audience" className="relative overflow-hidden bg-primary py-16 sm:py-20 text-primary-foreground lg:py-24 scroll-mt-20">
-      {/* Ambient glow */}
-      <div className="pointer-events-none absolute -left-20 top-1/3 h-80 w-80 rounded-full bg-ember/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 bottom-1/3 h-80 w-80 rounded-full bg-gold/10 blur-3xl" />
-
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto">
@@ -1373,7 +1320,7 @@ function AudienceSection({
             <ShieldCheck className="size-3.5 text-gold" />
             Portée certifiée · Données réelles
           </div>
-          <h2 className="mt-4 font-display text-3xl sm:text-4xl lg:text-5xl tracking-tight leading-tight">
+          <h2 className="mt-4 font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
             Une audience qualifiée sur 3 canaux.
           </h2>
           <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-primary-foreground/65 leading-relaxed">
@@ -1399,7 +1346,7 @@ function AudienceSection({
               </p>
 
               {/* Primary Stat */}
-              <p className="mt-1 sm:mt-2 font-display text-lg sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
+              <p className="mt-1 sm:mt-2 font-display text-lg sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
                 {channel.primaryStat?.value}
               </p>
 
@@ -1433,7 +1380,7 @@ function AudienceSection({
         {/* Target personas: Pour qui ? */}
         <div className="mt-20 border-t border-white/10 pt-16">
           <p className="text-[10px] font-bold uppercase tracking-widest text-gold font-mono">Cibles & Acteurs</p>
-          <h3 className="mt-3 max-w-4xl font-display text-3xl sm:text-5xl text-white">
+          <h3 className="mt-3 max-w-4xl font-display text-3xl sm:text-5xl font-bold text-white">
             IMPOSE accompagne ceux qui font bouger les lignes.
           </h3>
           <p className="mt-3 max-w-2xl text-xs sm:text-sm text-primary-foreground/70">
@@ -1472,7 +1419,7 @@ function ProcessSection() {
     <section className="bg-paper py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Notre processus</p>
-        <h2 className="mt-4 font-display text-4xl sm:text-6xl">De votre histoire à sa publication.</h2>
+        <h2 className="mt-4 font-display text-4xl sm:text-6xl font-bold">De votre histoire à sa publication.</h2>
         <ol className="relative mt-14 grid gap-10 lg:grid-cols-4 lg:gap-6 before:absolute before:left-0 before:right-0 before:top-5 before:hidden before:h-px before:bg-gold lg:before:block">
           {steps.map(([title, text], i) => (
             <li key={title} className="relative">
@@ -1494,7 +1441,7 @@ function FaqSection() {
       <div className="mx-auto max-w-5xl px-5 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Questions fréquentes</p>
-          <h2 className="mt-4 font-display text-4xl sm:text-6xl">Tout savoir sur IMPOSE</h2>
+          <h2 className="mt-4 font-display text-4xl sm:text-6xl font-bold">Tout savoir sur IMPOSE</h2>
           <p className="mt-4 text-base text-muted-foreground">
             Retrouvez les réponses aux questions les plus courantes sur nos parutions, notre audience et le processus de parution.
           </p>
@@ -1663,7 +1610,7 @@ function ContactForm({
       <span className="mx-auto grid size-14 place-items-center rounded-full bg-gold text-gold-foreground shadow-gold">
         <Check className="size-7" />
       </span>
-      <h3 className="mt-6 font-display text-3xl sm:text-4xl text-foreground">Demande de devis reçue avec succès.</h3>
+      <h3 className="mt-6 font-display text-3xl sm:text-4xl font-bold text-foreground">Demande de devis reçue avec succès.</h3>
       <p className="mt-3 max-w-md mx-auto text-sm sm:text-base text-muted-foreground leading-relaxed">
         Votre sélection a bien été enregistrée. L'équipe éditoriale et commerciale d'IMPOSE étudie votre projet et vous transmettra un devis chiffré et personnalisé sous 24h ouvrées.
       </p>
@@ -1697,7 +1644,7 @@ function ContactForm({
         <div className="md:col-span-2 rounded-sm border border-gold/50 bg-gold/5 p-4 shadow-sm animate-in fade-in duration-300">
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs font-bold uppercase tracking-wider text-gold flex items-center gap-1.5">
-              <Sparkles className="size-3.5" />
+              <CheckCircle2 className="size-3.5" />
               Prestations choisies pour votre devis ({selectedPrestations.length})
             </span>
             <div className="flex items-center gap-3">
@@ -1860,7 +1807,7 @@ function ContactSection({
       <div className="mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-[.75fr_1.25fr] lg:px-8">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-ember">Demande de devis</p>
-          <h2 className="mt-4 font-display text-5xl sm:text-6xl">Recevez votre devis personnalisé.</h2>
+          <h2 className="mt-4 font-display text-5xl sm:text-6xl font-bold">Recevez votre devis personnalisé.</h2>
           <p className="mt-6 text-base leading-7 text-muted-foreground">
             Sélectionnez vos prestations ou indiquez votre besoin. Notre équipe éditoriale et commerciale étudie votre dossier et vous transmet une offre chiffrée sous 24 heures.
           </p>
@@ -2053,15 +2000,13 @@ function Index() {
               <p className="mt-2 font-display text-xl leading-snug">{modalCover.title}</p>
               {modalCover.person !== "Édition spéciale" && <p className="mt-1 text-sm text-white/75">{modalCover.person}</p>}
               {modalCover.description && <p className="mt-2 text-xs text-white/60 leading-relaxed max-w-md mx-auto">{modalCover.description}</p>}
-              {modalCover.link && (
-                <div className="mt-4">
-                  <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
-                    <a href={modalCover.link} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="size-3.5" /> Lire le numéro en ligne
-                    </a>
-                  </Button>
-                </div>
-              )}
+              <div className="mt-5">
+                <Button asChild variant="gold" size="sm" className="w-full gap-2 shadow-gold">
+                  <a href={modalCover.link || "https://impose-ci.com/category/le-mensuel/"} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-3.5" /> Lire l'article complet en ligne
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

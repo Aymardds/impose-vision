@@ -972,7 +972,7 @@ function AdminPage() {
                   {audience.filter((c) => c.is_active !== false).slice(0, 3).map((ch) => (
                     <div key={ch.id} className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-center">
                       <p className="text-[10px] font-bold text-gold uppercase">{ch.name}</p>
-                      <p className="font-display text-xl sm:text-2xl font-bold text-white mt-1">{ch.primaryStat?.value || "—"}</p>
+                      <p className="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">{ch.primaryStat?.value || "—"}</p>
                       <p className="text-[10px] text-white/60">{ch.primaryStat?.label || "—"}</p>
                       {ch.highlightBadge && (
                         <span className="mt-1.5 inline-block text-[9px] font-bold text-gold bg-gold/15 px-2 py-0.5 rounded-full">
@@ -1024,7 +1024,7 @@ function AdminPage() {
                       <div className="rounded border border-gold/30 bg-gold/5 p-3 flex items-center justify-between">
                         <div>
                           <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Chiffre Clé</span>
-                          <p className="font-display text-2xl font-bold text-foreground">{channel.primaryStat?.value}</p>
+                          <p className="font-display text-2xl font-extrabold text-foreground">{channel.primaryStat?.value}</p>
                           <p className="text-[11px] text-muted-foreground">{channel.primaryStat?.label}</p>
                         </div>
                         {channel.highlightBadge && (

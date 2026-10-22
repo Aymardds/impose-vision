@@ -70,10 +70,13 @@ export function useDynamicData() {
   const [covers, setCovers] = useState<MagazineIssue[]>(() => {
     const loaded = loadLocal(STORAGE_KEYS.COVERS, magazineIssues);
     const storedLinks = getStoredCoverLinks();
-    return loaded.map((c) => ({
-      ...c,
-      link: c.link || storedLinks[String(c.id)] || storedLinks[c.number] || "",
-    }));
+    return loaded.map((c) => {
+      const defaultIssue = magazineIssues.find((m) => String(m.id) === String(c.id) || m.number === c.number);
+      return {
+        ...c,
+        link: c.link || storedLinks[String(c.id)] || storedLinks[c.number] || defaultIssue?.link || "https://impose-ci.com/category/le-mensuel/",
+      };
+    });
   });
   const [partners, setPartners] = useState<PartnerItem[]>(() =>
     loadLocal(STORAGE_KEYS.PARTNERS, initialPartners)
