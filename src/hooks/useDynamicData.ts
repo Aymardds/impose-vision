@@ -12,6 +12,7 @@ import {
   type AudienceMetric,
   type TargetAudience,
 } from "@/data/impose";
+// NOTE: initialAudienceChannels sert de fallback si Supabase n'est pas configuré
 import {
   getSupabase,
   isSupabaseConfigured,
@@ -227,8 +228,10 @@ export function useDynamicData() {
         saveLocal(STORAGE_KEYS.PARTNERS, mappedPartners);
       }
 
-      // Metrics
-      if (metricsRes.data && metricsRes.data.length > 0) {
+      // Metrics — récupération prioritaire depuis Supabase (source de vérité cross-device)
+      if (metricsRes.error) {
+        console.warn("Table metrics Supabase inaccessible, repli sur données locales:", metricsRes.error.message);
+      } else if (metricsRes.data && metricsRes.data.length > 0) {
         hasSupabaseData = true;
         const mappedMetrics: MetricItem[] = metricsRes.data.map((m: DbMetric) => ({
           id: m.id ?? Date.now(),
@@ -240,32 +243,65 @@ export function useDynamicData() {
         }));
         setMetrics(mappedMetrics);
         saveLocal(STORAGE_KEYS.METRICS, mappedMetrics);
+      } else {
+        // Table vide : auto-seed silencieux des métriques initiales dans Supabase
+        console.info("Table metrics vide dans Supabase — injection automatique des données initiales.");
+        const metricsToInsert = initialMetrics.map((m, idx) => ({
+          key: m.key,
+          value: m.value,
+          label: m.label,
+          icon_name: m.iconName,
+          order_index: m.order_index ?? idx + 1,
+        }));
+        await client.from("metrics").upsert(metricsToInsert, { onConflict: "key" });
+        setMetrics(initialMetrics);
+        saveLocal(STORAGE_KEYS.METRICS, initialMetrics);
       }
 
-      // Audience (de Supabase si disponible, sinon conservation du local)
-      try {
-        const audienceRes = await client.from("audience").select("*").order("order_index", { ascending: true });
-        if (audienceRes.data && audienceRes.data.length > 0) {
-          const mappedAudience: AudienceChannel[] = audienceRes.data.map((a: Record<string, unknown>) => ({
-            id: String(a["id"]),
-            name: String(a["name"] || ""),
-            badge: String(a["badge"] || "Chiffres Vérifiés"),
-            period: String(a["period"] || "Derniers 12 mois"),
-            headline: String(a["headline"] || ""),
-            subheadline: String(a["subheadline"] || ""),
-            primaryStat: (a["primary_stat"] as { value: string; label: string }) || { value: "", label: "" },
-            highlightBadge: (a["highlight_badge"] as string) || "",
-            keyTakeaway: String(a["key_takeaway"] || ""),
-            iconName: String(a["icon_name"] || "Globe"),
-            order_index: Number(a["order_index"]) || 0,
-            is_active: a["is_active"] !== false,
-            metrics: (a["metrics"] as AudienceMetric[]) || [],
-          }));
-          setAudience(mappedAudience);
-          saveLocal(STORAGE_KEYS.AUDIENCE, mappedAudience);
-        }
-      } catch (_) {
-        // Table audience optionnelle dans Supabase
+      // Audience — récupération prioritaire depuis Supabase (source de vérité cross-device)
+      const audienceRes = await client.from("audience").select("*").order("order_index", { ascending: true });
+      if (audienceRes.error) {
+        console.warn("Table audience Supabase inaccessible, repli sur données locales:", audienceRes.error.message);
+      } else if (audienceRes.data && audienceRes.data.length > 0) {
+        hasSupabaseData = true;
+        const mappedAudience: AudienceChannel[] = audienceRes.data.map((a: Record<string, unknown>) => ({
+          id: String(a["id"]),
+          name: String(a["name"] || ""),
+          badge: String(a["badge"] || "Chiffres Vérifiés"),
+          period: String(a["period"] || "Derniers 12 mois"),
+          headline: String(a["headline"] || ""),
+          subheadline: String(a["subheadline"] || ""),
+          primaryStat: (a["primary_stat"] as { value: string; label: string }) || { value: "", label: "" },
+          highlightBadge: (a["highlight_badge"] as string) || "",
+          keyTakeaway: String(a["key_takeaway"] || ""),
+          iconName: String(a["icon_name"] || "Globe"),
+          order_index: Number(a["order_index"]) || 0,
+          is_active: a["is_active"] !== false,
+          metrics: (a["metrics"] as AudienceMetric[]) || [],
+        }));
+        setAudience(mappedAudience);
+        saveLocal(STORAGE_KEYS.AUDIENCE, mappedAudience);
+      } else {
+        // Table vide : auto-seed silencieux des données initiales dans Supabase
+        console.info("Table audience vide dans Supabase — injection automatique des données initiales.");
+        const audienceToInsert = initialAudienceChannels.map((ch, idx) => ({
+          id: ch.id,
+          name: ch.name,
+          badge: ch.badge,
+          period: ch.period,
+          headline: ch.headline,
+          subheadline: ch.subheadline,
+          primary_stat: ch.primaryStat,
+          highlight_badge: ch.highlightBadge || "",
+          key_takeaway: ch.keyTakeaway,
+          icon_name: ch.iconName,
+          metrics: ch.metrics,
+          order_index: ch.order_index ?? idx + 1,
+          is_active: ch.is_active !== false,
+        }));
+        await client.from("audience").upsert(audienceToInsert, { onConflict: "id" });
+        setAudience(initialAudienceChannels);
+        saveLocal(STORAGE_KEYS.AUDIENCE, initialAudienceChannels);
       }
 
       // Leads
@@ -441,13 +477,24 @@ export function useDynamicData() {
 
   // CRUD Metrics
   const updateMetric = async (key: string, value: string, label: string) => {
+    const existing = metrics.find((m) => m.key === key);
     const updated = metrics.map((m) => (m.key === key ? { ...m, value, label } : m));
     setMetrics(updated);
     saveLocal(STORAGE_KEYS.METRICS, updated);
 
+    // Upsert dans Supabase (robuste même si la ligne n'existe pas encore)
     const client = getSupabase();
     if (client) {
-      await client.from("metrics").update({ value, label }).eq("key", key);
+      await client.from("metrics").upsert(
+        {
+          key,
+          value,
+          label,
+          icon_name: existing?.iconName || "Star",
+          order_index: existing?.order_index ?? 0,
+        },
+        { onConflict: "key" }
+      );
     }
   };
 
@@ -504,8 +551,27 @@ export function useDynamicData() {
       await client.from("partners").delete().neq("id", 0);
       await client.from("partners").insert(partnersToInsert);
 
+      // Seed audience channels (source de vérité cross-device)
+      const audienceToInsert = initialAudienceChannels.map((ch, idx) => ({
+        id: ch.id,
+        name: ch.name,
+        badge: ch.badge,
+        period: ch.period,
+        headline: ch.headline,
+        subheadline: ch.subheadline,
+        primary_stat: ch.primaryStat,
+        highlight_badge: ch.highlightBadge || "",
+        key_takeaway: ch.keyTakeaway,
+        icon_name: ch.iconName,
+        metrics: ch.metrics,
+        order_index: ch.order_index ?? idx + 1,
+        is_active: ch.is_active !== false,
+      }));
+      await client.from("audience").delete().neq("id", "");
+      await client.from("audience").insert(audienceToInsert);
+
       await fetchData();
-      return { success: true, message: "Les 26 couvertures, 9 partenaires et 4 métriques ont été injectés dans Supabase avec succès !" };
+      return { success: true, message: "Les 26 couvertures, 9 partenaires, 4 métriques et 3 canaux d'audience ont été injectés dans Supabase avec succès !" };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, message: `Erreur lors de l'injection : ${msg}` };
@@ -564,27 +630,32 @@ export function useDynamicData() {
   // CRUD Audience Channels
   const updateAudienceChannel = async (id: string, patch: Partial<AudienceChannel>) => {
     // 1. Sauvegarde locale et mémoire immédiate (instantanée)
-    const updated = audience.map((a) => (a.id === id ? { ...a, ...patch } : a));
+    const existing = audience.find((a) => a.id === id);
+    const merged = existing ? { ...existing, ...patch } : patch as AudienceChannel;
+    const updated = audience.map((a) => (a.id === id ? merged : a));
     setAudience(updated);
     saveLocal(STORAGE_KEYS.AUDIENCE, updated);
 
-    // 2. Synchronisation Supabase en arrière-plan (non-bloquante)
+    // 2. Synchronisation Supabase en arrière-plan via upsert (robuste même si la ligne n'existe pas)
     const client = getSupabase();
     if (client) {
+      const upsertPayload: Record<string, unknown> = {
+        id,
+        name: merged.name,
+        badge: merged.badge,
+        period: merged.period,
+        headline: merged.headline,
+        subheadline: merged.subheadline,
+        primary_stat: merged.primaryStat,
+        highlight_badge: merged.highlightBadge,
+        icon_name: merged.iconName,
+        key_takeaway: merged.keyTakeaway,
+        metrics: merged.metrics,
+        is_active: merged.is_active,
+        order_index: merged.order_index ?? 0,
+      };
       Promise.resolve(
-        client.from("audience").update({
-          name: patch.name,
-          badge: patch.badge,
-          period: patch.period,
-          headline: patch.headline,
-          subheadline: patch.subheadline,
-          primary_stat: patch.primaryStat,
-          highlight_badge: patch.highlightBadge,
-          icon_name: patch.iconName,
-          key_takeaway: patch.keyTakeaway,
-          metrics: patch.metrics,
-          is_active: patch.is_active,
-        }).eq("id", id)
+        client.from("audience").upsert(upsertPayload, { onConflict: "id" })
       ).catch((err) => {
         console.warn("Notice sync Supabase audience:", err);
       });
