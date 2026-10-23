@@ -1,5 +1,5 @@
-@import "tailwindcss" source(none);
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
+@import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
