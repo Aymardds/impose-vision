@@ -495,7 +495,7 @@ function Hero({
                 <div className="flex items-center gap-2 text-ember">
                   <Icon className="size-3.5" />
                 </div>
-                <p className="mt-1 font-display text-3xl font-extrabold text-foreground">{value}</p>
+                <p className="mt-1 font-stat text-3xl font-[800] text-foreground tracking-tight">{value}</p>
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
               </div>
             ))}
@@ -1346,7 +1346,7 @@ function AudienceSection({
               </p>
 
               {/* Primary Stat */}
-              <p className="mt-1 sm:mt-2 font-display text-lg sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+              <p className="mt-1 sm:mt-2 font-stat text-lg sm:text-3xl lg:text-4xl font-[800] text-white tracking-tight">
                 {channel.primaryStat?.value}
               </p>
 

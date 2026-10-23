@@ -1,4 +1,5 @@
 @import "tailwindcss" source(none);
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
 @source "../src";
 @import "tw-animate-css";
 
@@ -67,6 +68,7 @@
   --font-display: "Playfair Display", Georgia, serif;
   --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
+  --font-stat: "Montserrat", "Inter", system-ui, sans-serif;
   --shadow-editorial: 0 18px 45px -24px color-mix(in oklab, var(--foreground) 45%, transparent);
   --shadow-gold: 0 14px 34px -18px rgba(0, 0, 0, 0.28);
 }
