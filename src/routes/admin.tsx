@@ -10,6 +10,7 @@ import {
   Layers,
   Lock,
   LogOut,
+  Package,
   Plus,
   RefreshCw,
   Save,
@@ -42,13 +43,15 @@ import {
   type DbLead
 } from "@/lib/supabase";
 import { sendLeadToMake, MAKE_WEBHOOK_URL } from "@/lib/makeWebhook";
-import { SCHEMA_SQL } from "@/lib/schemaSql";
+import { SCHEMA_SQL, MISSING_TABLES_SQL } from "@/lib/schemaSql";
 import {
   type MagazineIssue,
   type PartnerItem,
   type AudienceChannel,
   type AudienceMetric,
   type TargetAudience,
+  type PackageOption,
+  type ServicePrestation,
 } from "@/data/impose";
 import logoImpose from "@/assets/landingImage/logoImpose.png";
 
@@ -71,7 +74,7 @@ function AdminPage() {
   });
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [activeTab, setActiveTab] = useState<"covers" | "partners" | "metrics" | "audience" | "leads" | "supabase">("covers");
+  const [activeTab, setActiveTab] = useState<"covers" | "partners" | "metrics" | "audience" | "offers" | "leads" | "supabase">("covers");
 
   const {
     covers,
@@ -79,6 +82,9 @@ function AdminPage() {
     metrics,
     audience,
     targetAudiences,
+    packages,
+    prestations,
+    objectives,
     leads,
     loading,
     isSupabaseActive,
@@ -99,6 +105,16 @@ function AdminPage() {
     addTargetAudience,
     deleteTargetAudience,
     resetTargetAudiencesToDefault,
+    updatePackage,
+    addPackage,
+    deletePackage,
+    updatePrestation,
+    addPrestation,
+    deletePrestation,
+    addObjective,
+    deleteObjective,
+    resetPackagesToDefault,
+    resetPrestationsToDefault,
     deleteLead,
     seedToSupabase,
   } = useDynamicData();
@@ -162,11 +178,42 @@ function AdminPage() {
     website: "",
   });
 
+  // Package modal state
+  const [packageModalOpen, setPackageModalOpen] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<PackageOption | null>(null);
+  const [packageForm, setPackageForm] = useState<PackageOption>({
+    id: "",
+    name: "",
+    tagline: "",
+    description: "",
+    features: [""],
+    badge: "",
+    featured: false,
+  });
+
+  // Prestation modal state
+  const [prestationModalOpen, setPrestationModalOpen] = useState(false);
+  const [editingPrestation, setEditingPrestation] = useState<ServicePrestation | null>(null);
+  const [prestationForm, setPrestationForm] = useState<ServicePrestation>({
+    id: "",
+    name: "",
+    category: "editorial",
+    categoryLabel: "Rédaction & Journalisme",
+    description: "",
+    recommendedFor: "",
+    badge: "",
+  });
+
+  // Objective modal state
+  const [objectiveModalOpen, setObjectiveModalOpen] = useState(false);
+  const [newObjectiveLabel, setNewObjectiveLabel] = useState("");
+
   // Supabase test state
   const [testingSupabase, setTestingSupabase] = useState(false);
   const [supabaseTestResult, setSupabaseTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [copiedMissingSql, setCopiedMissingSql] = useState(false);
   const [showSqlPreview, setShowSqlPreview] = useState(false);
   const [testingWebhook, setTestingWebhook] = useState(false);
 
@@ -179,11 +226,22 @@ function AdminPage() {
     try {
       await navigator.clipboard.writeText(SCHEMA_SQL);
       setCopiedSql(true);
-      toast.success("Script SQL copié dans le presse-papier !");
+      toast.success("Script SQL complet copié dans le presse-papier !");
       setTimeout(() => setCopiedSql(false), 3000);
     } catch {
       toast.error("Veuillez sélectionner et copier le code SQL ci-dessous manuellement.");
       setShowSqlPreview(true);
+    }
+  };
+
+  const handleCopyMissingSql = async () => {
+    try {
+      await navigator.clipboard.writeText(MISSING_TABLES_SQL);
+      setCopiedMissingSql(true);
+      toast.success("Script des 4 tables manquantes copié !");
+      setTimeout(() => setCopiedMissingSql(false), 3000);
+    } catch {
+      toast.error("Erreur de copie dans le presse-papier.");
     }
   };
 
@@ -415,26 +473,121 @@ function AdminPage() {
     setTargetModalOpen(true);
   };
 
-  const handleSaveTarget = (e: FormEvent) => {
+  const handleSaveTarget = async (e: FormEvent) => {
     e.preventDefault();
     if (!targetForm.title.trim() || !targetForm.description.trim()) {
       toast.error("Veuillez renseigner le titre et la description de la cible");
       return;
     }
-    if (editingTarget) {
-      updateTargetAudience(editingTarget.id, targetForm);
-      toast.success(`Cible "${targetForm.title}" modifiée avec succès`);
-    } else {
-      addTargetAudience(targetForm);
-      toast.success(`Nouvelle cible "${targetForm.title}" ajoutée`);
+    try {
+      if (editingTarget) {
+        await updateTargetAudience(editingTarget.id, targetForm);
+        toast.success(`Cible "${targetForm.title}" synchronisée avec Supabase et enregistrée`);
+      } else {
+        await addTargetAudience(targetForm);
+        toast.success(`Nouvelle cible "${targetForm.title}" synchronisée avec Supabase et ajoutée`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.warning(`Enregistré en local uniquement. Erreur Supabase : ${msg}. Avez-vous créé la table target_audiences ?`);
+    } finally {
+      setTargetModalOpen(false);
     }
-    setTargetModalOpen(false);
   };
 
   const handleResetTargets = () => {
     if (confirm("Réinitialiser les cibles ('Pour qui ?') aux valeurs d'origine ?")) {
       resetTargetAudiencesToDefault();
       toast.success("Cibles réinitialisées avec succès");
+    }
+  };
+
+  // Package handlers
+  const openPackageModal = (pkg?: PackageOption) => {
+    if (pkg) {
+      setEditingPackage(pkg);
+      setPackageForm({ ...pkg, features: [...(pkg.features || [])] });
+    } else {
+      setEditingPackage(null);
+      setPackageForm({
+        id: `pkg_${Date.now()}`,
+        name: "",
+        tagline: "",
+        description: "",
+        features: [""],
+        badge: "",
+        featured: false,
+      });
+    }
+    setPackageModalOpen(true);
+  };
+
+  const handleSavePackage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!packageForm.name.trim()) {
+      toast.error("Veuillez renseigner le nom de la formule");
+      return;
+    }
+    const cleanedFeatures = (packageForm.features || []).filter((f) => f.trim() !== "");
+    const payload: PackageOption = {
+      ...packageForm,
+      features: cleanedFeatures.length > 0 ? cleanedFeatures : ["Accompagnement personnalisé"],
+    };
+    try {
+      if (editingPackage) {
+        await updatePackage(editingPackage.id, payload);
+        toast.success(`Formule "${payload.name}" synchronisée avec Supabase !`);
+      } else {
+        await addPackage(payload);
+        toast.success(`Formule "${payload.name}" synchronisée avec Supabase !`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.warning(`Enregistré en local uniquement. Erreur Supabase : ${msg}. Exécutez le script SQL dans Supabase.`);
+    } finally {
+      setPackageModalOpen(false);
+    }
+  };
+
+  // Prestation handlers
+  const openPrestationModal = (prest?: ServicePrestation) => {
+    if (prest) {
+      setEditingPrestation(prest);
+      setPrestationForm({ ...prest });
+    } else {
+      setEditingPrestation(null);
+      setPrestationForm({
+        id: `prest_${Date.now()}`,
+        name: "",
+        category: "editorial",
+        categoryLabel: "Rédaction & Journalisme",
+        description: "",
+        recommendedFor: "",
+        badge: "",
+      });
+    }
+    setPrestationModalOpen(true);
+  };
+
+  const handleSavePrestation = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!prestationForm.name.trim()) {
+      toast.error("Veuillez renseigner le nom de la prestation");
+      return;
+    }
+    try {
+      if (editingPrestation) {
+        await updatePrestation(editingPrestation.id, prestationForm);
+        toast.success(`Prestation "${prestationForm.name}" synchronisée avec Supabase !`);
+      } else {
+        await addPrestation(prestationForm);
+        toast.success(`Prestation "${prestationForm.name}" synchronisée avec Supabase !`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.warning(`Enregistré en local uniquement. Erreur Supabase : ${msg}. Exécutez le script SQL dans Supabase.`);
+    } finally {
+      setPrestationModalOpen(false);
     }
   };
 
@@ -666,6 +819,16 @@ function AdminPage() {
           >
             <BarChart3 className="size-4" />
             Audience & Cibles ({audience.length + targetAudiences.length})
+          </Button>
+
+          <Button
+            variant={activeTab === "offers" ? "editorial" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("offers")}
+            className="flex items-center gap-2"
+          >
+            <Package className="size-4" />
+            Offres & Formules ({packages.length + prestations.length})
           </Button>
 
           <Button
@@ -1138,6 +1301,235 @@ function AdminPage() {
         )}
 
         {/* =========================================================================
+            TAB: OFFRES & FORMULES
+           ========================================================================= */}
+        {activeTab === "offers" && (
+          <div className="mt-8 space-y-10">
+            {/* SECTION 1 : FORMULES / PACKAGES */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/50 pb-4">
+                <div>
+                  <span className="rounded bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold font-mono">
+                    Landing Page · Section Formules
+                  </span>
+                  <h2 className="mt-1 font-display text-2xl font-medium">Formules & Packages ({packages.length})</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Gérez les formules clés en main affichées sur la landing page (Découverte, Croissance, Impact, Signature, Annuel).
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Réinitialiser les formules aux valeurs par défaut ?")) {
+                        resetPackagesToDefault();
+                        toast.success("Formules réinitialisées par défaut");
+                      }
+                    }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <RotateCcw className="size-3.5 mr-1" /> Par défaut
+                  </Button>
+                  <Button variant="editorial" size="sm" onClick={() => openPackageModal()}>
+                    <Plus className="size-4 mr-1" /> Nouvelle formule
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {packages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className={`relative flex flex-col justify-between rounded border p-5 transition-all ${
+                      pkg.featured
+                        ? "border-gold/50 bg-gold/5 shadow-md"
+                        : "border-foreground/15 bg-card/90 shadow-sm hover:border-gold/40"
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-start justify-between border-b border-border/50 pb-2 gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-gold font-mono">{pkg.name}</span>
+                            {pkg.badge && (
+                              <span className="rounded bg-gold/20 border border-gold/40 px-1.5 py-0.5 text-[9px] font-bold text-gold uppercase">
+                                {pkg.badge}
+                              </span>
+                            )}
+                            {pkg.featured && (
+                              <span className="rounded bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 uppercase">
+                                ★ Populaire
+                              </span>
+                            )}
+                          </div>
+                          {pkg.tagline && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{pkg.tagline}</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-foreground/80 leading-relaxed font-sans">{pkg.description}</p>
+                      <ul className="space-y-1.5 mt-2">
+                        {(pkg.features || []).map((f, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                            <Check className="size-3.5 text-gold shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+                      <Button variant="ghost" size="sm" onClick={() => openPackageModal(pkg)} className="gap-1.5 text-xs">
+                        <Edit3 className="size-3.5 text-gold" /> Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Supprimer la formule "${pkg.name}" ?`)) {
+                            deletePackage(pkg.id);
+                            toast.info(`Formule "${pkg.name}" supprimée`);
+                          }
+                        }}
+                        className="text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 2 : PRESTATIONS A LA CARTE */}
+            <div className="space-y-4 pt-6 border-t border-border/60">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <span className="rounded bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold font-mono">
+                    Landing Page · Configurateur à la carte
+                  </span>
+                  <h2 className="mt-1 font-display text-2xl font-medium">Prestations à la carte ({prestations.length})</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Services éditoriaux, visuels, diffusion et stratégie sélectionnables librement par les clients.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Réinitialiser les prestations aux valeurs par défaut ?")) {
+                        resetPrestationsToDefault();
+                        toast.success("Prestations réinitialisées par défaut");
+                      }
+                    }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    <RotateCcw className="size-3.5 mr-1" /> Par défaut
+                  </Button>
+                  <Button variant="editorial" size="sm" onClick={() => openPrestationModal()}>
+                    <Plus className="size-4 mr-1" /> Nouvelle prestation
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {prestations.map((prest) => (
+                  <div
+                    key={prest.id}
+                    className="relative flex flex-col justify-between rounded border border-foreground/15 bg-card/90 p-4 shadow-sm hover:border-gold/40 transition-all"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              {prest.categoryLabel || prest.category}
+                            </span>
+                            {prest.badge && (
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-gold/15 text-gold border border-gold/30">
+                                {prest.badge}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="font-semibold text-sm text-foreground mt-1.5 leading-snug">{prest.name}</h3>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{prest.description}</p>
+                      {prest.recommendedFor && (
+                        <p className="text-[10px] text-gold/80 font-medium">→ Idéal pour : {prest.recommendedFor}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-border/50 pt-2.5">
+                      <Button variant="ghost" size="sm" onClick={() => openPrestationModal(prest)} className="gap-1.5 text-xs h-7 px-2">
+                        <Edit3 className="size-3 text-gold" /> Modifier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Supprimer la prestation "${prest.name}" ?`)) {
+                            deletePrestation(prest.id);
+                            toast.info(`Prestation "${prest.name}" supprimée`);
+                          }
+                        }}
+                        className="h-7 px-2 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 3 : OBJECTIFS DU FORMULAIRE */}
+            <div className="space-y-4 pt-6 border-t border-border/60">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <span className="rounded bg-gold/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold font-mono">
+                    Formulaire de Contact
+                  </span>
+                  <h2 className="mt-1 font-display text-2xl font-medium">Objectifs du Formulaire ({objectives.length})</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Options proposées dans le champ déroulant "Votre objectif prioritaire" lors des demandes de devis.
+                  </p>
+                </div>
+                <Button variant="editorial" size="sm" onClick={() => setObjectiveModalOpen(true)}>
+                  <Plus className="size-4 mr-1" /> Ajouter un objectif
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {objectives.map((obj, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 rounded-full border border-foreground/15 bg-card px-3.5 py-1.5 text-xs font-medium text-foreground hover:border-gold/50 transition-colors"
+                  >
+                    <span>{obj}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Supprimer l'objectif "${obj}" ?`)) {
+                          deleteObjective(obj);
+                          toast.info(`Objectif "${obj}" supprimé`);
+                        }
+                      }}
+                      className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                      title="Supprimer cet objectif"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
             TAB 4: LEADS
            ========================================================================= */}
         {activeTab === "leads" && (
@@ -1312,9 +1704,14 @@ function AdminPage() {
               </p>
 
               <div className="flex flex-wrap gap-3 pt-1">
-                <Button variant="editorial" size="sm" onClick={handleCopySql} className="flex items-center gap-2">
+                <Button variant="editorial" size="sm" onClick={handleCopyMissingSql} className="flex items-center gap-2">
+                  {copiedMissingSql ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+                  {copiedMissingSql ? "Script Tables Manquantes Copié !" : "Copier le Script des 4 Tables Manquantes"}
+                </Button>
+
+                <Button variant="ghost" size="sm" onClick={handleCopySql} className="flex items-center gap-2 text-xs border border-foreground/15">
                   {copiedSql ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
-                  {copiedSql ? "Script SQL Copié !" : "Copier le Script SQL (schema.sql)"}
+                  {copiedSql ? "Schéma Complet Copié !" : "Copier le Schéma Complet (10 tables)"}
                 </Button>
 
                 <a
@@ -1813,6 +2210,290 @@ function AdminPage() {
                 </Button>
                 <Button type="submit" variant="editorial" size="sm">
                   {editingTarget ? "Sauvegarder la cible" : "Créer la cible"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PACKAGE / FORMULE */}
+      {packageModalOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="relative my-8 w-full max-w-lg rounded-sm border border-gold/40 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold">
+                  {editingPackage ? `Modifier : ${editingPackage.name}` : "Nouvelle Formule"}
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Section "Nos Formules" — Visible sur la landing page publique.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setPackageModalOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSavePackage} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-muted-foreground">Nom de la formule *</label>
+                <input
+                  type="text"
+                  value={packageForm.name}
+                  onChange={(e) => setPackageForm({ ...packageForm, name: e.target.value })}
+                  placeholder="Ex: Formule Découverte, Formule Signature..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground">Accroche / Tagline</label>
+                <input
+                  type="text"
+                  value={packageForm.tagline || ""}
+                  onChange={(e) => setPackageForm({ ...packageForm, tagline: e.target.value })}
+                  placeholder="Ex: Premiers pas & Notoriété ciblée"
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground">Description</label>
+                <textarea
+                  value={packageForm.description}
+                  onChange={(e) => setPackageForm({ ...packageForm, description: e.target.value })}
+                  placeholder="Description détaillée de la formule..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold min-h-16"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground mb-1 block">
+                  Inclusions / Features (une par ligne)
+                </label>
+                {(packageForm.features || [""]).map((feat, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={feat}
+                      onChange={(e) => {
+                        const newFeatures = [...(packageForm.features || [])];
+                        newFeatures[idx] = e.target.value;
+                        setPackageForm({ ...packageForm, features: newFeatures });
+                      }}
+                      placeholder={`Inclusion ${idx + 1}...`}
+                      className="w-full border border-input bg-background p-2 rounded-sm outline-none focus:border-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newFeatures = (packageForm.features || []).filter((_, i) => i !== idx);
+                        setPackageForm({ ...packageForm, features: newFeatures });
+                      }}
+                      className="text-muted-foreground hover:text-destructive px-2"
+                      title="Supprimer cette inclusion"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPackageForm({ ...packageForm, features: [...(packageForm.features || []), ""] })}
+                  className="text-xs text-muted-foreground gap-1"
+                >
+                  <Plus className="size-3" /> Ajouter une inclusion
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-muted-foreground">Badge (optionnel)</label>
+                  <input
+                    type="text"
+                    value={packageForm.badge || ""}
+                    onChange={(e) => setPackageForm({ ...packageForm, badge: e.target.value })}
+                    placeholder="Ex: Populaire, Sur-mesure..."
+                    className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center gap-2 cursor-pointer pb-2">
+                    <input
+                      type="checkbox"
+                      checked={packageForm.featured || false}
+                      onChange={(e) => setPackageForm({ ...packageForm, featured: e.target.checked })}
+                      className="size-4 accent-[var(--gold)]"
+                    />
+                    <span className="font-medium text-foreground">★ Mettre en vedette</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-border/50">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPackageModalOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" variant="editorial" size="sm">
+                  {editingPackage ? "Sauvegarder" : "Créer la formule"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PRESTATION */}
+      {prestationModalOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="relative my-8 w-full max-w-lg rounded-sm border border-gold/40 bg-card p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold">
+                  {editingPrestation ? `Modifier : ${editingPrestation.name}` : "Nouvelle Prestation"}
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Services éditoriaux, visuels, diffusion ou stratégie proposés par IMPOSE.
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setPrestationModalOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleSavePrestation} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="font-semibold text-muted-foreground">Nom de la prestation *</label>
+                <input
+                  type="text"
+                  value={prestationForm.name}
+                  onChange={(e) => setPrestationForm({ ...prestationForm, name: e.target.value })}
+                  placeholder="Ex: Article éditorial dédié..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground mb-1 block">Catégorie</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "editorial", label: "Rédaction & Journalisme" },
+                    { value: "visual", label: "Création Visuelle" },
+                    { value: "diffusion", label: "Diffusion & Notoriété" },
+                    { value: "strategy", label: "Stratégie & Partenariat" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() =>
+                        setPrestationForm({
+                          ...prestationForm,
+                          category: cat.value as ServicePrestation["category"],
+                          categoryLabel: cat.label,
+                        })
+                      }
+                      className={`rounded border p-2 text-center text-xs transition-all ${
+                        prestationForm.category === cat.value
+                          ? "border-gold bg-gold/15 text-gold font-bold shadow-xs"
+                          : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-muted-foreground">Description</label>
+                <textarea
+                  value={prestationForm.description}
+                  onChange={(e) => setPrestationForm({ ...prestationForm, description: e.target.value })}
+                  placeholder="Description du service..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold min-h-16"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-muted-foreground">Idéal pour / Recommandé</label>
+                  <input
+                    type="text"
+                    value={prestationForm.recommendedFor || ""}
+                    onChange={(e) => setPrestationForm({ ...prestationForm, recommendedFor: e.target.value })}
+                    placeholder="Ex: Visibilité & storytelling..."
+                    className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-muted-foreground">Badge (optionnel)</label>
+                  <input
+                    type="text"
+                    value={prestationForm.badge || ""}
+                    onChange={(e) => setPrestationForm({ ...prestationForm, badge: e.target.value })}
+                    placeholder="Ex: Populaire, Exclusif..."
+                    className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-border/50">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPrestationModalOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" variant="editorial" size="sm">
+                  {editingPrestation ? "Sauvegarder" : "Créer la prestation"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: OBJECTIF DU FORMULAIRE */}
+      {objectiveModalOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-sm border border-gold/40 bg-card p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <h3 className="font-display text-base font-semibold">Ajouter un Objectif</h3>
+              <Button variant="ghost" size="icon" onClick={() => setObjectiveModalOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newObjectiveLabel.trim()) return;
+                addObjective(newObjectiveLabel.trim());
+                toast.success(`Objectif "${newObjectiveLabel.trim()}" ajouté`);
+                setNewObjectiveLabel("");
+                setObjectiveModalOpen(false);
+              }}
+              className="mt-4 space-y-4 text-xs"
+            >
+              <div>
+                <label className="font-semibold text-muted-foreground">Libellé de l'objectif</label>
+                <input
+                  type="text"
+                  value={newObjectiveLabel}
+                  onChange={(e) => setNewObjectiveLabel(e.target.value)}
+                  placeholder="Ex: Partenariat média, Sponsoring..."
+                  className="mt-1 w-full border border-input bg-background p-2.5 rounded-sm outline-none focus:border-gold"
+                  autoFocus
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setObjectiveModalOpen(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" variant="editorial" size="sm">
+                  Ajouter l'objectif
                 </Button>
               </div>
             </form>

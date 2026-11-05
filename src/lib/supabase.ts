@@ -83,6 +83,50 @@ export interface DbLead {
   savedLocallyAt?: string | undefined;
 }
 
+export interface DbTargetAudience {
+  id: string;
+  title: string;
+  description?: string;
+  cta_text?: string;
+  order_index?: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
+export interface DbPackage {
+  id: string;
+  name: string;
+  tagline?: string;
+  description?: string;
+  features?: string[];
+  badge?: string;
+  featured?: boolean;
+  order_index?: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
+export interface DbPrestation {
+  id: string;
+  name: string;
+  category?: string;
+  category_label?: string;
+  description?: string;
+  recommended_for?: string;
+  badge?: string;
+  order_index?: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
+export interface DbObjective {
+  id?: number;
+  label: string;
+  order_index?: number;
+  is_active?: boolean;
+  created_at?: string;
+}
+
 export function normalizeDbLead(raw: Record<string, unknown>): DbLead {
   const first_name = String(raw["first_name"] ?? raw["firstName"] ?? "").trim();
   const last_name = String(raw["last_name"] ?? raw["lastName"] ?? "").trim();
@@ -135,34 +179,46 @@ export async function testSupabaseConnection(): Promise<{
   }
 
   try {
-    const [coversRes, partnersRes, metricsRes] = await Promise.all([
+    const [
+      coversRes,
+      partnersRes,
+      metricsRes,
+      audienceRes,
+      targetsRes,
+      packagesRes,
+      prestationsRes,
+      objectivesRes,
+    ] = await Promise.all([
       client.from("covers").select("id", { count: "exact" }).limit(1),
       client.from("partners").select("id", { count: "exact" }).limit(1),
       client.from("metrics").select("id", { count: "exact" }).limit(1),
+      client.from("audience").select("id", { count: "exact" }).limit(1),
+      client.from("target_audiences").select("id", { count: "exact" }).limit(1),
+      client.from("packages").select("id", { count: "exact" }).limit(1),
+      client.from("prestations").select("id", { count: "exact" }).limit(1),
+      client.from("objectives").select("id", { count: "exact" }).limit(1),
     ]);
 
-    if (coversRes.error) {
+    const missingTables: string[] = [];
+    if (coversRes.error) missingTables.push("covers");
+    if (partnersRes.error) missingTables.push("partners");
+    if (metricsRes.error) missingTables.push("metrics");
+    if (audienceRes.error) missingTables.push("audience");
+    if (targetsRes.error) missingTables.push("target_audiences");
+    if (packagesRes.error) missingTables.push("packages");
+    if (prestationsRes.error) missingTables.push("prestations");
+    if (objectivesRes.error) missingTables.push("objectives");
+
+    if (missingTables.length > 0) {
       return {
         ok: false,
-        message: `La table 'covers' n'est pas encore créée (${coversRes.error.message}). Veuillez exécuter le script supabase/schema.sql dans le SQL Editor de Supabase.`,
-      };
-    }
-    if (partnersRes.error) {
-      return {
-        ok: false,
-        message: `La table 'partners' n'est pas encore créée (${partnersRes.error.message}). Veuillez exécuter le script supabase/schema.sql.`,
-      };
-    }
-    if (metricsRes.error) {
-      return {
-        ok: false,
-        message: `La table 'metrics' n'est pas encore créée (${metricsRes.error.message}). Veuillez exécuter le script supabase/schema.sql.`,
+        message: `Tables manquantes dans Supabase : ${missingTables.join(", ")}. Exécutez le script SQL (Étape 1) dans votre SQL Editor Supabase.`,
       };
     }
 
     return {
       ok: true,
-      message: "Connexion Supabase réussie et toutes les tables sont opérationnelles !",
+      message: "Connexion Supabase réussie et les 8 tables sont opérationnelles !",
       details: {
         coversCount: coversRes.count ?? 0,
         partnersCount: partnersRes.count ?? 0,

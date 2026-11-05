@@ -5,12 +5,17 @@ import {
   initialMetrics,
   initialAudienceChannels,
   initialTargetAudiences,
+  packages as initialPackages,
+  availablePrestations as initialPrestations,
+  objectives as initialObjectives,
   type MagazineIssue,
   type PartnerItem,
   type MetricItem,
   type AudienceChannel,
   type AudienceMetric,
   type TargetAudience,
+  type PackageOption,
+  type ServicePrestation,
 } from "@/data/impose";
 // NOTE: initialAudienceChannels sert de fallback si Supabase n'est pas configuré
 import {
@@ -21,6 +26,10 @@ import {
   type DbPartner,
   type DbMetric,
   type DbLead,
+  type DbTargetAudience,
+  type DbPackage,
+  type DbPrestation,
+  type DbObjective,
 } from "@/lib/supabase";
 
 const STORAGE_KEYS = {
@@ -30,6 +39,9 @@ const STORAGE_KEYS = {
   METRICS: "impose_dynamic_metrics",
   AUDIENCE: "impose_dynamic_audience",
   TARGET_AUDIENCES: "impose_dynamic_target_audiences",
+  PACKAGES: "impose_dynamic_packages",
+  PRESTATIONS: "impose_dynamic_prestations",
+  OBJECTIVES: "impose_dynamic_objectives",
   LEADS: "impose_leads_backup",
 };
 
@@ -91,6 +103,15 @@ export function useDynamicData() {
   const [targetAudiences, setTargetAudiences] = useState<TargetAudience[]>(() =>
     loadLocal(STORAGE_KEYS.TARGET_AUDIENCES, initialTargetAudiences)
   );
+  const [packages, setPackages] = useState<PackageOption[]>(() =>
+    loadLocal(STORAGE_KEYS.PACKAGES, initialPackages)
+  );
+  const [prestations, setPrestations] = useState<ServicePrestation[]>(() =>
+    loadLocal(STORAGE_KEYS.PRESTATIONS, initialPrestations)
+  );
+  const [objectives, setObjectives] = useState<string[]>(() =>
+    loadLocal(STORAGE_KEYS.OBJECTIVES, initialObjectives)
+  );
   const [leads, setLeads] = useState<DbLead[]>(() => {
     const raw = loadLocal<Record<string, unknown>[]>(STORAGE_KEYS.LEADS, []);
     return raw.map(normalizeDbLead);
@@ -108,6 +129,15 @@ export function useDynamicData() {
       }
       if (key === STORAGE_KEYS.TARGET_AUDIENCES && Array.isArray(value)) {
         setTargetAudiences(value as TargetAudience[]);
+      }
+      if (key === STORAGE_KEYS.PACKAGES && Array.isArray(value)) {
+        setPackages(value as PackageOption[]);
+      }
+      if (key === STORAGE_KEYS.PRESTATIONS && Array.isArray(value)) {
+        setPrestations(value as ServicePrestation[]);
+      }
+      if (key === STORAGE_KEYS.OBJECTIVES && Array.isArray(value)) {
+        setObjectives(value as string[]);
       }
       if (key === STORAGE_KEYS.COVERS && Array.isArray(value)) {
         setCovers(value as MagazineIssue[]);
@@ -302,6 +332,122 @@ export function useDynamicData() {
         await client.from("audience").upsert(audienceToInsert, { onConflict: "id" });
         setAudience(initialAudienceChannels);
         saveLocal(STORAGE_KEYS.AUDIENCE, initialAudienceChannels);
+      }
+
+      // Target Audiences — sync Supabase
+      const targetAudienceRes = await client.from("target_audiences").select("*").order("order_index", { ascending: true });
+      if (targetAudienceRes.error) {
+        console.warn("Table target_audiences inaccessible:", targetAudienceRes.error.message);
+      } else if (targetAudienceRes.data && targetAudienceRes.data.length > 0) {
+        hasSupabaseData = true;
+        const mapped = targetAudienceRes.data.map((t: DbTargetAudience) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || "",
+          ctaText: t.cta_text || "En savoir plus",
+          order_index: t.order_index ?? 0,
+          is_active: t.is_active !== false,
+        }));
+        setTargetAudiences(mapped);
+        saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, mapped);
+      } else {
+        // Auto-seed
+        const toInsert = initialTargetAudiences.map((t, idx) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description || "",
+          cta_text: t.ctaText || "En savoir plus",
+          order_index: t.order_index ?? idx + 1,
+          is_active: t.is_active !== false,
+        }));
+        await client.from("target_audiences").upsert(toInsert, { onConflict: "id" });
+      }
+
+      // Packages — sync Supabase
+      const packagesRes = await client.from("packages").select("*").order("order_index", { ascending: true });
+      if (packagesRes.error) {
+        console.warn("Table packages inaccessible:", packagesRes.error.message);
+      } else if (packagesRes.data && packagesRes.data.length > 0) {
+        hasSupabaseData = true;
+        const mapped: PackageOption[] = packagesRes.data.map((p: DbPackage) => ({
+          id: p.id,
+          name: p.name,
+          tagline: p.tagline || "",
+          description: p.description || "",
+          features: (p.features as string[]) || [],
+          badge: p.badge || undefined,
+          featured: p.featured || false,
+        }));
+        setPackages(mapped);
+        saveLocal(STORAGE_KEYS.PACKAGES, mapped);
+      } else {
+        // Auto-seed
+        const toInsert = initialPackages.map((p, idx) => ({
+          id: p.id,
+          name: p.name,
+          tagline: p.tagline || "",
+          description: p.description,
+          features: p.features,
+          badge: p.badge || "",
+          featured: p.featured || false,
+          order_index: idx + 1,
+          is_active: true,
+        }));
+        await client.from("packages").upsert(toInsert, { onConflict: "id" });
+      }
+
+      // Prestations — sync Supabase
+      const prestationsRes = await client.from("prestations").select("*").order("order_index", { ascending: true });
+      if (prestationsRes.error) {
+        console.warn("Table prestations inaccessible:", prestationsRes.error.message);
+      } else if (prestationsRes.data && prestationsRes.data.length > 0) {
+        hasSupabaseData = true;
+        const mapped: ServicePrestation[] = prestationsRes.data.map((p: DbPrestation) => ({
+          id: p.id,
+          name: p.name,
+          category: (p.category || "editorial") as ServicePrestation["category"],
+          categoryLabel: p.category_label || "",
+          description: p.description || "",
+          recommendedFor: p.recommended_for || undefined,
+          badge: p.badge || undefined,
+        }));
+        setPrestations(mapped);
+        saveLocal(STORAGE_KEYS.PRESTATIONS, mapped);
+      } else {
+        // Auto-seed
+        const toInsert = initialPrestations.map((p, idx) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          category_label: p.categoryLabel,
+          description: p.description,
+          recommended_for: p.recommendedFor || "",
+          badge: p.badge || "",
+          order_index: idx + 1,
+          is_active: true,
+        }));
+        await client.from("prestations").upsert(toInsert, { onConflict: "id" });
+      }
+
+      // Objectives — sync Supabase
+      const objectivesRes = await client.from("objectives").select("*").order("order_index", { ascending: true });
+      if (objectivesRes.error) {
+        console.warn("Table objectives inaccessible:", objectivesRes.error.message);
+      } else if (objectivesRes.data && objectivesRes.data.length > 0) {
+        hasSupabaseData = true;
+        const mapped: string[] = objectivesRes.data
+          .filter((o: DbObjective) => o.is_active !== false)
+          .map((o: DbObjective) => o.label);
+        setObjectives(mapped);
+        saveLocal(STORAGE_KEYS.OBJECTIVES, mapped);
+      } else {
+        // Auto-seed
+        const toInsert = initialObjectives.map((label, idx) => ({
+          label,
+          order_index: idx + 1,
+          is_active: true,
+        }));
+        await client.from("objectives").upsert(toInsert, { onConflict: "label" });
       }
 
       // Leads
@@ -570,8 +716,67 @@ export function useDynamicData() {
       await client.from("audience").delete().neq("id", "");
       await client.from("audience").insert(audienceToInsert);
 
+      // Seed target_audiences
+      const targetAudiencesToInsert = initialTargetAudiences.map((t, idx) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description || "",
+        cta_text: t.ctaText || "En savoir plus",
+        order_index: t.order_index ?? idx + 1,
+        is_active: t.is_active !== false,
+      }));
+      const { error: targetDelErr } = await client.from("target_audiences").delete().neq("id", "");
+      if (targetDelErr) throw new Error(`Table 'target_audiences' manquante (${targetDelErr.message}). Exécutez le script SQL.`);
+      const { error: targetInsErr } = await client.from("target_audiences").insert(targetAudiencesToInsert);
+      if (targetInsErr) throw new Error(`Erreur insertion target_audiences : ${targetInsErr.message}`);
+
+      // Seed packages
+      const packagesToInsert = initialPackages.map((p, idx) => ({
+        id: p.id,
+        name: p.name,
+        tagline: p.tagline || "",
+        description: p.description,
+        features: p.features,
+        badge: p.badge || "",
+        featured: p.featured || false,
+        order_index: idx + 1,
+        is_active: true,
+      }));
+      const { error: pkgDelErr } = await client.from("packages").delete().neq("id", "");
+      if (pkgDelErr) throw new Error(`Table 'packages' manquante (${pkgDelErr.message}). Exécutez le script SQL.`);
+      const { error: pkgInsErr } = await client.from("packages").insert(packagesToInsert);
+      if (pkgInsErr) throw new Error(`Erreur insertion packages : ${pkgInsErr.message}`);
+
+      // Seed prestations
+      const prestationsToInsert = initialPrestations.map((p, idx) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        category_label: p.categoryLabel,
+        description: p.description,
+        recommended_for: p.recommendedFor || "",
+        badge: p.badge || "",
+        order_index: idx + 1,
+        is_active: true,
+      }));
+      const { error: prestDelErr } = await client.from("prestations").delete().neq("id", "");
+      if (prestDelErr) throw new Error(`Table 'prestations' manquante (${prestDelErr.message}). Exécutez le script SQL.`);
+      const { error: prestInsErr } = await client.from("prestations").insert(prestationsToInsert);
+      if (prestInsErr) throw new Error(`Erreur insertion prestations : ${prestInsErr.message}`);
+
+      // Seed objectives
+      const { error: objDelErr } = await client.from("objectives").delete().neq("id", 0);
+      if (objDelErr) throw new Error(`Table 'objectives' manquante (${objDelErr.message}). Exécutez le script SQL.`);
+      const objectivesToInsert = initialObjectives.map((label, idx) => ({
+        label,
+        order_index: idx + 1,
+        is_active: true,
+      }));
+      const { error: objInsErr } = await client.from("objectives").insert(objectivesToInsert);
+      if (objInsErr) throw new Error(`Erreur insertion objectives : ${objInsErr.message}`);
+
       await fetchData();
-      return { success: true, message: "Les 26 couvertures, 9 partenaires, 4 métriques et 3 canaux d'audience ont été injectés dans Supabase avec succès !" };
+      return { success: true, message: "Toutes les données (couvertures, partenaires, métriques, audience, cibles, offres, prestations, objectifs) ont été injectées dans Supabase avec succès !" };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, message: `Erreur lors de l'injection : ${msg}` };
@@ -717,13 +922,31 @@ export function useDynamicData() {
   };
 
   // CRUD Target Audiences ("Pour qui ?")
-  const updateTargetAudience = (id: string, patch: Partial<TargetAudience>) => {
-    const updated = targetAudiences.map((t) => (t.id === id ? { ...t, ...patch } : t));
+  const updateTargetAudience = async (id: string, patch: Partial<TargetAudience>) => {
+    const existing = targetAudiences.find((t) => t.id === id);
+    const merged = existing ? { ...existing, ...patch } : patch as TargetAudience;
+    const updated = targetAudiences.map((t) => (t.id === id ? merged : t));
     setTargetAudiences(updated);
     saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("target_audiences").upsert({
+        id,
+        title: merged.title,
+        description: merged.description || "",
+        cta_text: merged.ctaText || "En savoir plus",
+        order_index: merged.order_index ?? 0,
+        is_active: merged.is_active !== false,
+      }, { onConflict: "id" });
+      if (error) {
+        console.error("Erreur sync target_audiences Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
   };
 
-  const addTargetAudience = (target: Omit<TargetAudience, "id"> & { id?: string }) => {
+  const addTargetAudience = async (target: Omit<TargetAudience, "id"> & { id?: string }) => {
     const newId = target.id || `cible_${Date.now()}`;
     const newTarget: TargetAudience = {
       ...target,
@@ -734,17 +957,225 @@ export function useDynamicData() {
     const updated = [...targetAudiences, newTarget];
     setTargetAudiences(updated);
     saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("target_audiences").insert({
+        id: newId,
+        title: newTarget.title,
+        description: newTarget.description || "",
+        cta_text: newTarget.ctaText || "En savoir plus",
+        order_index: newTarget.order_index ?? updated.length,
+        is_active: true,
+      });
+      if (error) {
+        console.error("Erreur insertion target_audiences Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
   };
 
-  const deleteTargetAudience = (id: string) => {
+  const deleteTargetAudience = async (id: string) => {
     const updated = targetAudiences.filter((t) => t.id !== id);
     setTargetAudiences(updated);
     saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("target_audiences").delete().eq("id", id);
+      if (error) {
+        console.error("Erreur suppression target_audiences Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
   };
 
   const resetTargetAudiencesToDefault = () => {
     setTargetAudiences(initialTargetAudiences);
     saveLocal(STORAGE_KEYS.TARGET_AUDIENCES, initialTargetAudiences);
+  };
+
+  // CRUD Packages
+  const updatePackage = async (id: string, patch: Partial<PackageOption>) => {
+    const existing = packages.find((p) => p.id === id);
+    const merged = existing ? { ...existing, ...patch } : patch as PackageOption;
+    const updated = packages.map((p) => (p.id === id ? merged : p));
+    setPackages(updated);
+    saveLocal(STORAGE_KEYS.PACKAGES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("packages").upsert({
+        id,
+        name: merged.name,
+        tagline: merged.tagline || "",
+        description: merged.description || "",
+        features: merged.features || [],
+        badge: merged.badge || "",
+        featured: merged.featured || false,
+        is_active: true,
+      }, { onConflict: "id" });
+      if (error) {
+        console.error("Erreur sync packages Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const addPackage = async (pkg: Omit<PackageOption, "id"> & { id?: string }) => {
+    const newId = pkg.id || `pkg_${Date.now()}`;
+    const newPkg: PackageOption = { ...pkg, id: newId };
+    const updated = [...packages, newPkg];
+    setPackages(updated);
+    saveLocal(STORAGE_KEYS.PACKAGES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("packages").insert({
+        id: newId,
+        name: newPkg.name,
+        tagline: newPkg.tagline || "",
+        description: newPkg.description || "",
+        features: newPkg.features || [],
+        badge: newPkg.badge || "",
+        featured: newPkg.featured || false,
+        order_index: updated.length,
+        is_active: true,
+      });
+      if (error) {
+        console.error("Erreur insert packages Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const deletePackage = async (id: string) => {
+    const updated = packages.filter((p) => p.id !== id);
+    setPackages(updated);
+    saveLocal(STORAGE_KEYS.PACKAGES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("packages").delete().eq("id", id);
+      if (error) {
+        console.error("Erreur delete packages Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  // CRUD Prestations
+  const updatePrestation = async (id: string, patch: Partial<ServicePrestation>) => {
+    const existing = prestations.find((p) => p.id === id);
+    const merged = existing ? { ...existing, ...patch } : patch as ServicePrestation;
+    const updated = prestations.map((p) => (p.id === id ? merged : p));
+    setPrestations(updated);
+    saveLocal(STORAGE_KEYS.PRESTATIONS, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("prestations").upsert({
+        id,
+        name: merged.name,
+        category: merged.category,
+        category_label: merged.categoryLabel || "",
+        description: merged.description || "",
+        recommended_for: merged.recommendedFor || "",
+        badge: merged.badge || "",
+        is_active: true,
+      }, { onConflict: "id" });
+      if (error) {
+        console.error("Erreur sync prestations Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const addPrestation = async (prest: Omit<ServicePrestation, "id"> & { id?: string }) => {
+    const newId = prest.id || `prest_${Date.now()}`;
+    const newPrest: ServicePrestation = { ...prest, id: newId };
+    const updated = [...prestations, newPrest];
+    setPrestations(updated);
+    saveLocal(STORAGE_KEYS.PRESTATIONS, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("prestations").insert({
+        id: newId,
+        name: newPrest.name,
+        category: newPrest.category,
+        category_label: newPrest.categoryLabel || "",
+        description: newPrest.description || "",
+        recommended_for: newPrest.recommendedFor || "",
+        badge: newPrest.badge || "",
+        order_index: updated.length,
+        is_active: true,
+      });
+      if (error) {
+        console.error("Erreur insert prestations Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const deletePrestation = async (id: string) => {
+    const updated = prestations.filter((p) => p.id !== id);
+    setPrestations(updated);
+    saveLocal(STORAGE_KEYS.PRESTATIONS, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("prestations").delete().eq("id", id);
+      if (error) {
+        console.error("Erreur delete prestations Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  // CRUD Objectives
+  const addObjective = async (label: string) => {
+    const updated = [...objectives, label];
+    setObjectives(updated);
+    saveLocal(STORAGE_KEYS.OBJECTIVES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("objectives").insert({
+        label,
+        order_index: updated.length,
+        is_active: true,
+      });
+      if (error) {
+        console.error("Erreur insert objectives Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const deleteObjective = async (label: string) => {
+    const updated = objectives.filter((o) => o !== label);
+    setObjectives(updated);
+    saveLocal(STORAGE_KEYS.OBJECTIVES, updated);
+
+    const client = getSupabase();
+    if (client) {
+      const { error } = await client.from("objectives").delete().eq("label", label);
+      if (error) {
+        console.error("Erreur delete objectives Supabase:", error.message);
+        throw new Error(error.message);
+      }
+    }
+  };
+
+  const resetPackagesToDefault = () => {
+    setPackages(initialPackages);
+    saveLocal(STORAGE_KEYS.PACKAGES, initialPackages);
+  };
+
+  const resetPrestationsToDefault = () => {
+    setPrestations(initialPrestations);
+    saveLocal(STORAGE_KEYS.PRESTATIONS, initialPrestations);
   };
 
   return {
@@ -753,6 +1184,9 @@ export function useDynamicData() {
     metrics,
     audience,
     targetAudiences,
+    packages,
+    prestations,
+    objectives,
     leads,
     loading,
     isSupabaseActive,
@@ -774,6 +1208,16 @@ export function useDynamicData() {
     addTargetAudience,
     deleteTargetAudience,
     resetTargetAudiencesToDefault,
+    updatePackage,
+    addPackage,
+    deletePackage,
+    updatePrestation,
+    addPrestation,
+    deletePrestation,
+    addObjective,
+    deleteObjective,
+    resetPackagesToDefault,
+    resetPrestationsToDefault,
     recordLead,
     deleteLead,
     seedToSupabase,

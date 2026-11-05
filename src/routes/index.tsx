@@ -927,11 +927,18 @@ function PackagesSection({
   onSelectPackage,
   onSelectPrestations,
   selectedPrestations = [],
+  packageItems,
+  prestationItems,
 }: {
   onSelectPackage: (pkg: PackageOption) => void;
   onSelectPrestations: (prestations: string[]) => void;
   selectedPrestations?: string[];
+  packageItems?: PackageOption[] | undefined;
+  prestationItems?: ServicePrestation[] | undefined;
 }) {
+  const effectivePackages = packageItems && packageItems.length > 0 ? packageItems : packages;
+  const effectivePrestations = prestationItems && prestationItems.length > 0 ? prestationItems : availablePrestations;
+
   const [activeTab, setActiveTab] = useState<"formulas" | "alacarte">("formulas");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [selectedServices, setSelectedServices] = useState<string[]>(() => selectedPrestations);
@@ -951,7 +958,7 @@ function PackagesSection({
   };
 
   const categories = [
-    { id: "all", label: `Toutes (${availablePrestations.length})` },
+    { id: "all", label: `Toutes (${effectivePrestations.length})` },
     { id: "editorial", label: "Rédaction & Journalisme" },
     { id: "visual", label: "Création Visuelle" },
     { id: "diffusion", label: "Diffusion & Notoriété" },
@@ -959,8 +966,8 @@ function PackagesSection({
   ];
 
   const filteredPrestations = activeCategory === "all"
-    ? availablePrestations
-    : availablePrestations.filter((p) => p.category === activeCategory);
+    ? effectivePrestations
+    : effectivePrestations.filter((p) => p.category === activeCategory);
 
   const handleApplyPrestations = () => {
     if (selectedServices.length === 0) {
@@ -1024,7 +1031,7 @@ function PackagesSection({
         {activeTab === "formulas" && (
           <div className="mt-12">
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-              {packages.map((pkg) => (
+              {effectivePackages.map((pkg) => (
                 <article
                   key={pkg.id}
                   className={`relative flex flex-col border p-6 transition-all duration-300 hover:-translate-y-1.5 rounded-sm ${pkg.featured
@@ -1101,7 +1108,7 @@ function PackagesSection({
                     </tr>
                   </thead>
                   <tbody>
-                    {packages.map((p) => (
+                    {effectivePackages.map((p) => (
                       <tr key={p.id} className="border-t border-foreground/10 hover:bg-muted/30 transition-colors">
                         <td className="p-4 font-semibold text-foreground">
                           {p.name}
@@ -1487,6 +1494,8 @@ type ContactFormProps = {
   onRemovePrestation: (name: string) => void;
   onClearPrestations: () => void;
   onClearPackage: () => void;
+  objectiveItems?: string[] | undefined;
+  packageItems?: PackageOption[] | undefined;
 };
 
 function ContactForm({
@@ -1495,7 +1504,12 @@ function ContactForm({
   onRemovePrestation,
   onClearPrestations,
   onClearPackage,
+  objectiveItems,
+  packageItems,
 }: ContactFormProps) {
+  const effectiveObjectives = objectiveItems && objectiveItems.length > 0 ? objectiveItems : objectives;
+  const effectivePackages = packageItems && packageItems.length > 0 ? packageItems : packages;
+
   const [started, setStarted] = useState(false);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1723,7 +1737,7 @@ function ContactForm({
 
       <select className={field} name="objective" defaultValue="" required disabled={loading}>
         <option value="" disabled>Votre objectif prioritaire *</option>
-        {objectives.map(o => <option key={o} value={o}>{o}</option>)}
+        {effectiveObjectives.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
 
       <select
@@ -1740,7 +1754,7 @@ function ContactForm({
           </option>
         )}
         <option value="Prestations à la carte (Sur mesure)">Prestations à la carte (Sur-mesure)</option>
-        {packages.map(p => (
+        {effectivePackages.map(p => (
           <option key={p.id} value={`Formule ${p.name} (Sur devis)`}>
             Formule {p.name} (Sur devis)
           </option>
@@ -1801,6 +1815,8 @@ function ContactSection({
   onRemovePrestation,
   onClearPrestations,
   onClearPackage,
+  objectiveItems,
+  packageItems,
 }: ContactFormProps) {
   return (
     <section id="contact" className="hero-sunrise py-20 lg:py-28 border-t border-foreground/10">
@@ -1853,6 +1869,8 @@ function ContactSection({
           onRemovePrestation={onRemovePrestation}
           onClearPrestations={onClearPrestations}
           onClearPackage={onClearPackage}
+          objectiveItems={objectiveItems}
+          packageItems={packageItems}
         />
       </div>
     </section>
@@ -1918,7 +1936,16 @@ function Footer() {
 }
 
 function Index() {
-  const { covers, partners, metrics, audience, targetAudiences } = useDynamicData();
+  const {
+    covers,
+    partners,
+    metrics,
+    audience,
+    targetAudiences,
+    packages: dynamicPackages,
+    prestations: dynamicPrestations,
+    objectives: dynamicObjectives,
+  } = useDynamicData();
   const sortedCovers = sortCoversChronological(covers, "desc");
   const [selected, setSelected] = useState<PackageOption | null>(null);
   const [selectedPrestations, setSelectedPrestations] = useState<string[]>([]);
@@ -1956,6 +1983,8 @@ function Index() {
           onSelectPackage={choosePackage}
           onSelectPrestations={choosePrestations}
           selectedPrestations={selectedPrestations}
+          packageItems={dynamicPackages}
+          prestationItems={dynamicPrestations}
         />
         <PartnersSection items={partners} />
         <ProcessSection />
@@ -1966,6 +1995,8 @@ function Index() {
           onRemovePrestation={handleTogglePrestation}
           onClearPrestations={() => setSelectedPrestations([])}
           onClearPackage={() => setSelected(null)}
+          objectiveItems={dynamicObjectives}
+          packageItems={dynamicPackages}
         />
       </main>
       <Footer />

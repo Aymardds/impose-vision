@@ -1,7 +1,8 @@
 -- =========================================================================
 -- IMPOSE MAGAZINE — SCHÉMA SUPABASE & POLITIQUES DE SÉCURITÉ
 -- =========================================================================
--- Exécutez ce script dans le "SQL Editor" de votre tableau de bord Supabase.
+-- Exécutez ce script dans le "SQL Editor" de votre tableau de bord Supabase :
+-- https://supabase.com/dashboard/project/uwrcztmhsobwsylsltrv/sql/new
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -17,9 +18,12 @@ CREATE TABLE IF NOT EXISTS public.covers (
   description TEXT DEFAULT '',
   featured BOOLEAN DEFAULT true,
   order_index INTEGER DEFAULT 0,
+  link_url TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.covers ADD COLUMN IF NOT EXISTS link_url TEXT DEFAULT '';
 
 -- 3. TABLE DES PARTENAIRES (PARTNERS)
 CREATE TABLE IF NOT EXISTS public.partners (
@@ -44,7 +48,26 @@ CREATE TABLE IF NOT EXISTS public.metrics (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. TABLE DES LEADS CAPTURÉS (LEADS)
+-- 5. TABLE AUDIENCE (CANAUX SITE WEB, LINKEDIN, FACEBOOK)
+CREATE TABLE IF NOT EXISTS public.audience (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  badge TEXT DEFAULT 'Chiffres Vérifiés',
+  period TEXT DEFAULT 'Derniers 12 mois',
+  headline TEXT DEFAULT '',
+  subheadline TEXT DEFAULT '',
+  primary_stat JSONB DEFAULT '{"value":"","label":""}',
+  highlight_badge TEXT DEFAULT '',
+  key_takeaway TEXT DEFAULT '',
+  icon_name TEXT DEFAULT 'Globe',
+  metrics JSONB DEFAULT '[]',
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. TABLE DES LEADS CAPTURÉS (LEADS)
 CREATE TABLE IF NOT EXISTS public.leads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   first_name TEXT NOT NULL,
@@ -63,84 +86,138 @@ CREATE TABLE IF NOT EXISTS public.leads (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. POLITIQUES DE SÉCURITÉ (ROW LEVEL SECURITY)
+-- 7. TABLE DES CIBLES / ACTEURS (TARGET_AUDIENCES)
+CREATE TABLE IF NOT EXISTS public.target_audiences (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  cta_text TEXT DEFAULT 'En savoir plus',
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. TABLE DES FORMULES / PACKAGES
+CREATE TABLE IF NOT EXISTS public.packages (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  tagline TEXT DEFAULT '',
+  description TEXT DEFAULT '',
+  features JSONB DEFAULT '[]',
+  badge TEXT DEFAULT '',
+  featured BOOLEAN DEFAULT false,
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. TABLE DES PRESTATIONS / SERVICES
+CREATE TABLE IF NOT EXISTS public.prestations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT DEFAULT 'editorial',
+  category_label TEXT DEFAULT '',
+  description TEXT DEFAULT '',
+  recommended_for TEXT DEFAULT '',
+  badge TEXT DEFAULT '',
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. TABLE DES OBJECTIFS (liste pour le formulaire de contact)
+CREATE TABLE IF NOT EXISTS public.objectives (
+  id BIGSERIAL PRIMARY KEY,
+  label TEXT NOT NULL UNIQUE,
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. POLITIQUES DE SÉCURITÉ (ROW LEVEL SECURITY)
 ALTER TABLE public.covers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.partners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audience ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.target_audiences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.packages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prestations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.objectives ENABLE ROW LEVEL SECURITY;
 
--- Lecture publique pour le site web
+-- Lecture publique pour le site web (idempotent avec DROP POLICY IF EXISTS)
+DROP POLICY IF EXISTS "Public covers viewable" ON public.covers;
 CREATE POLICY "Public covers viewable" ON public.covers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public partners viewable" ON public.partners;
 CREATE POLICY "Public partners viewable" ON public.partners FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "Public metrics viewable" ON public.metrics;
 CREATE POLICY "Public metrics viewable" ON public.metrics FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public audience viewable" ON public.audience;
+CREATE POLICY "Public audience viewable" ON public.audience FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public target_audiences viewable" ON public.target_audiences;
+CREATE POLICY "Public target_audiences viewable" ON public.target_audiences FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "Public packages viewable" ON public.packages;
+CREATE POLICY "Public packages viewable" ON public.packages FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "Public prestations viewable" ON public.prestations;
+CREATE POLICY "Public prestations viewable" ON public.prestations FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "Public objectives viewable" ON public.objectives;
+CREATE POLICY "Public objectives viewable" ON public.objectives FOR SELECT USING (is_active = true);
+
 -- Insertion publique pour les formulaires de contact
+DROP POLICY IF EXISTS "Public can submit leads" ON public.leads;
 CREATE POLICY "Public can submit leads" ON public.leads FOR INSERT WITH CHECK (true);
 
 -- Administration (CRUD complet pour la gestion dynamique)
+DROP POLICY IF EXISTS "Admin full access covers" ON public.covers;
 CREATE POLICY "Admin full access covers" ON public.covers FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access partners" ON public.partners;
 CREATE POLICY "Admin full access partners" ON public.partners FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access metrics" ON public.metrics;
 CREATE POLICY "Admin full access metrics" ON public.metrics FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access audience" ON public.audience;
+CREATE POLICY "Admin full access audience" ON public.audience FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access leads" ON public.leads;
 CREATE POLICY "Admin full access leads" ON public.leads FOR ALL USING (true) WITH CHECK (true);
 
--- 7. BUCKET DE STOCKAGE POUR LES IMAGES
+DROP POLICY IF EXISTS "Admin full access target_audiences" ON public.target_audiences;
+CREATE POLICY "Admin full access target_audiences" ON public.target_audiences FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access packages" ON public.packages;
+CREATE POLICY "Admin full access packages" ON public.packages FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access prestations" ON public.prestations;
+CREATE POLICY "Admin full access prestations" ON public.prestations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin full access objectives" ON public.objectives;
+CREATE POLICY "Admin full access objectives" ON public.objectives FOR ALL USING (true) WITH CHECK (true);
+
+-- 12. BUCKET DE STOCKAGE POUR LES IMAGES
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('impose-media', 'impose-media', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public media access" ON storage.objects;
 CREATE POLICY "Public media access" ON storage.objects FOR SELECT USING (bucket_id = 'impose-media');
+
+DROP POLICY IF EXISTS "Admin upload media" ON storage.objects;
 CREATE POLICY "Admin upload media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'impose-media');
+
+DROP POLICY IF EXISTS "Admin update media" ON storage.objects;
 CREATE POLICY "Admin update media" ON storage.objects FOR UPDATE USING (bucket_id = 'impose-media');
+
+DROP POLICY IF EXISTS "Admin delete media" ON storage.objects;
 CREATE POLICY "Admin delete media" ON storage.objects FOR DELETE USING (bucket_id = 'impose-media');
-
--- 8. DONNÉES INITIALES (MÉTRIQUES)
-INSERT INTO public.metrics (key, value, label, icon_name, order_index) VALUES
-  ('editions', '+31', 'Éditions publiées', 'Star', 1),
-  ('pays', '+15', 'Pays représentés', 'Globe', 2),
-  ('leaders', '+500', 'Leaders mis en avant', 'TrendingUp', 3),
-  ('digital', '100%', 'Média 100% Digital', 'Zap', 4)
-ON CONFLICT (key) DO UPDATE SET
-  value = EXCLUDED.value,
-  label = EXCLUDED.label,
-  icon_name = EXCLUDED.icon_name,
-  order_index = EXCLUDED.order_index;
--- 9. DONNÉES DES COUVERTURES (26 COUVERTURES)
-INSERT INTO public.covers (number, title, person, date, image_url, description, featured, order_index) VALUES
-  ('N°31', 'L''impact comme moteur : Quand le business devient une solution pour tous', 'Joseph-Olivier Biley', 'Septembre 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/josephbiley.jpg', 'Joseph-Olivier Biley — Co-Founder & CEO, Jool International. 125 Millions de dollars ATIDI pour l''investissement en Afrique.', true, 1),
-  ('N°30', 'Tout devient digital : Comprendre et maîtriser le virage incontournable', 'Alex Zan Bi', 'Août 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/alex_zan_bi.jpg', 'Alex Zan Bi — Entrepreneur Digital & Créateur de Contenu (+300k abonnés). Fondateur Lewa Space & Cofondateur GetMedford.', true, 2),
-  ('N°29', 'Quand la technologie tente de structurer l''informel africain', 'Moro Application', 'Mai 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/moro_application.jpg', 'Inclusion financière, données et éducation financière : une nouvelle approche pour rendre les micro-entrepreneurs visibles et finançables. 1,7 Milliard FCFA dans l''UEMOA.', true, 3),
-  ('N°28', 'Africa''s Business Heroes — Le nouveau pouvoir féminin de l''innovation', 'Gwladys Alahassa', 'Avril 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/gwladys.jpg', 'Gwladys Alahassa — Directrice Générale Qotto Bénin. Elles déplacent les lignes : le nouveau pouvoir féminin de l''innovation.', true, 4),
-  ('N°27', 'L''architecte de la réputation', 'El Hadji Ndoye', 'Mars 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/ndoye.jpg', 'El Hadji Ndoye — Expert en Personal Branding pour Entrepreneurs & CEOs. Le CEO qui façonne les leaders de demain. Africa''s Business Heroes 2026.', true, 5),
-  ('N°26', 'Transformer la passion en entreprise : Le pari lucide des créatifs africains', 'Mohamed Aly Diabaté', 'Février 2026', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/mohamed_aly_diabate_.jpg', 'Mohamed Aly Diabaté — Filmmaker, Photojournalist & Manager Visualis Africa. 29 500 Milliards USD de richesses minières & Initiative IA Bill Gates / OpenAI.', true, 6),
-  ('N°25', 'Pourquoi les investisseurs misent sur la finance africaine ?', 'Jonathan Ouedraogo', 'Janvier 2025', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/ouedraogo.jpg', 'Jonathan Ouedraogo — Banque et Ingénierie Financière, Expert E-commerce. SEDAP & Programme TEF.', false, 7),
-  ('N°24', 'Vision, défis et leadership de l''Amazone de l''Énergie', 'Florence Eba', 'Décembre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/florence.jpg', 'Florence Eba — Snr Consultant & Director at Venture Konect. Le Sénégal soutient la Banque Africaine de l''Énergie.', false, 8),
-  ('N°23', 'L''écosystème des startups en Côte d''Ivoire', 'Alexia Amicha', 'Août 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/alexia.jpg', 'Alexia Amicha — Sous-directrice du Développement de l''Entrepreneuriat et des Startups Technologiques.', false, 9),
-  ('N°22', 'Transforming life in Africa & CleanTech', 'Deborah Gael', 'Octobre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/impose___cover_deborah.jpg', 'Deborah Gael — Co-Founder and COO of Koolboks. Réfrigération solaire et accélération des énergies durables.', false, 10),
-  ('N°22', '$145 million to boost energy & Finance internationale', 'Brian Hurfet', 'Octobre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/bryan.jpg', 'Brian Hurfet — CEO de BHB Investments & Business Services et African Insights Academy. Ancien banquier d''affaires.', false, 11),
-  ('N°21', 'L''inclusion financière dans le contexte africain', 'Darly Nguema', 'Septembre 2025', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/darly_nguema.jpg', 'Darly Nguema — Analyste financière. L''accès universel et équitable aux services financiers numériques abordables.', false, 12),
-  ('N°21', 'L''univers remarquable des startups en Afrique', 'Alex Degny', 'Juin 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/alexdegny.jpg', 'Alex Degny — Président du CI20. 20 startups numériques représentent la Côte d''Ivoire à l''international.', false, 13),
-  ('N°20', 'Fintech : Vers une révolution inclusive de la finance en Afrique de l''Ouest', 'Régis Zagbadi', 'Août 2025', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/_zagbadi.jpg', 'Régis Zagbadi — Expert Risques & Compliance FinTech UEMOA | Fondateur IZAQA. Bientôt les paiements instantanés pour tous, Mobile Money et PI-SPI.', true, 14),
-  ('N°19', 'L''art contemporain, entre révolte esthétique et questionnements identitaires', 'Olatidoye Iburaim Olaniyi (Grouilleur 3.0)', 'Juillet 2025', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/grouilleur3.0.jpg', 'Olatidoye Iburaim Olaniyi — Photographe professionnel. Prix Pierre Castel 2025 : « DJOLI » sacré vainqueur. Le champ du producteur devient notre frigo.', false, 15),
-  ('N°18', 'La startup africaine qui redéfinit la mobilité urbaine', 'Wilfried Adingra', 'Juin 2025', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/wilfried_adingra.jpg', 'Wilfried Adingra — Founder & CEO at GLSAfrica. Avec plus de 50 Millions de FCFA préparez l''avenir, incubez l''innovation & Un bond en avant dans l''IA.', false, 16),
-  ('N°17', 'L''IA au service de l''agriculture durable en Afrique', 'Daniel Oulaï', 'Mai 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/daniel_oulai.jpg', 'Daniel Oulaï — PDG de la GRAINOTECH SAS, entrepreneur social engagé. +7000 inscrits en 2025 & Google s''associe à des acteurs tech africains.', false, 17),
-  ('N°16', '« La littérature est un outil puissant pour s''enrichir »', 'Charlène Danon', 'Avril 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/charlene_danon.jpg', 'Charlène Danon — Journaliste, scénariste-productrice et écrivaine. 49 jeunes bénéficient de 36 millions à Gagnoa & Gérez votre projet avec MORO.', false, 18),
-  ('N°15', 'Puissance féminine : Entre ambition et audace', 'Mylène Amon & Charlène Valmorin', 'Mars 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/mylen___charlene.jpg', 'Mylène Amon (Paper-artist) & Charlène Valmorin (My Place Events & AbidjanaisesInTech). 4 Startups fintech accompagnées à hauteur de 1 milliard.', false, 19),
-  ('N°14', '« C''est le meilleur héritage que je puisse laisser à cette jeunesse »', 'Assalé Tiémoko', 'Février 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/assale__tie_moko.jpg', 'Assalé Tiémoko — Député-Maire de Tiassalé et Président de mouvement ADCI. CI20 MEETUP : Un tournant décisif pour les startups ivoiriennes.', false, 20),
-  ('N°12', 'Médias, Innovation & Technologie IA transforment nos sociétés africaines', 'Israël Guébo', 'Décembre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/israel_guebo.jpg', 'Israël Guébo — Vice-Président ADCI, Consultant en communication et médias. 20 Jeunes entrepreneurs en Corée du Sud & Sommet SACH 2025.', false, 21),
-  ('N°11', '2 Milliards disponibles pour la jeunesse ivoirienne', 'Stéphane Bolou', 'Novembre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/ste_phane_bolou.jpg', 'Stéphane Bolou — Délégué Exécutif #Ci20 | Directeur Fund Management du Fonds Startup Boost Capital.', false, 22),
-  ('N°10', 'Des institutions s''engagent dans l''autonomisation des jeunes', 'Olga Djadji', 'Octobre 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/olga_djadji.jpg', 'Olga Djadji — Présidente de la Fondation BKD (Bénédicte Janine Kacou Diagou). Impacter un million de jeunes.', false, 23),
-  ('N°07', 'L''impact de la digitalisation sur la jeunesse africaine', 'Polus Agathon', 'Juillet 2024', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/agathonpolusa.jpg', 'Polus Agathon — Spécialiste en Communication Digitale, Formateur certifié Méta.', false, 24),
-  ('N°06', 'Passionjob, le chemin d''accès à votre épanouissement !', 'Axelle Aurore', 'Juin 2023', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/axel_aurore.jpg', 'Axelle Aurore — Choisir de vivre selon ses passions est un passeport pour la réussite ! #Mentorat (Re)Orientation Professionnelle.', false, 25),
-  ('N°03', '100 personnalités qui ont changé l''Afrique', 'Jemima Kessie', 'Mars 2023', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/covers/coverimposejemima_copie.jpg', 'Jemima Kessie — Nouvelle génération de communicants en faveur des bonnes conditions des femmes.', false, 26);
-
--- 10. DONNÉES DES PARTENAIRES
-INSERT INTO public.partners (name, logo_url, class_name, website, order_index, is_active) VALUES
-  ('#Ci20', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose1.png', 'h-9 sm:h-11 w-auto max-w-[140px]', '', 1, true),
-  ('Djoulatchê', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose2.png', 'h-10 sm:h-12 w-auto max-w-[140px] rounded-sm', '', 2, true),
-  ('AKILI', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose3.png', 'h-10 sm:h-12 w-auto max-w-[140px]', '', 3, true),
-  ('Yolicard', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose4.png', 'h-8 sm:h-10 w-auto max-w-[140px]', '', 4, true),
-  ('Fondation BKD', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose5.png', 'h-9 sm:h-11 w-auto max-w-[140px]', '', 5, true),
-  ('moro', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose6.png', 'h-9 sm:h-11 w-auto max-w-[140px]', '', 6, true),
-  ('KOOLBOKS', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose6.png.webp', 'h-7 sm:h-9 w-auto max-w-[140px]', '', 7, true),
-  ('Venture Konect', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose7.png.webp', 'h-9 sm:h-11 w-auto max-w-[160px]', '', 8, true),
-  ('INEXIUMUS', 'https://uwrcztmhsobwsylsltrv.supabase.co/storage/v1/object/public/impose-media/partners/partenaireimpose8.png', 'h-8 sm:h-10 w-auto max-w-[160px]', '', 9, true);

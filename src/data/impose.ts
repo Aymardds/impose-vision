@@ -333,13 +333,13 @@ export const magazineIssues: MagazineIssue[] = [
 export type PackageOption = {
   id: string;
   name: string;
-  tagline?: string;
-  priceFcfa?: string;
-  priceEur?: string;
+  tagline?: string | undefined;
+  priceFcfa?: string | undefined;
+  priceEur?: string | undefined;
   description: string;
   features: string[];
-  badge?: string;
-  featured?: boolean;
+  badge?: string | undefined;
+  featured?: boolean | undefined;
 };
 
 export interface ServicePrestation {
@@ -348,8 +348,8 @@ export interface ServicePrestation {
   category: "editorial" | "visual" | "diffusion" | "strategy";
   categoryLabel: string;
   description: string;
-  recommendedFor?: string;
-  badge?: string;
+  recommendedFor?: string | undefined;
+  badge?: string | undefined;
 }
 
 export const availablePrestations: ServicePrestation[] = [
